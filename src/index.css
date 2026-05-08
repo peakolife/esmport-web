@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --font-technical: "Space Grotesk", sans-serif;
+  --font-friendly: "Plus Jakarta Sans", sans-serif;
+
+  --color-primary: var(--primary);
+  --color-primary-rgb: var(--primary-rgb);
+
+  --breakpoint-xs: 375px;
+}
+
+:root {
+  --primary: #ea580c;
+  --primary-rgb: 234, 88, 12;
+}
+
+html {
+  scroll-behavior: smooth;
+}
