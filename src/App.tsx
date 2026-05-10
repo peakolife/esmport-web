@@ -236,15 +236,25 @@ const IconComponent = ({ name, className }: { name: string, className?: string }
 
 const Hero = ({ content }: { content: any }) => {
   const { scrollY } = useScroll();
-  const y1 = useTransform(scrollY, [0, 500], [0, 200]);
-  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+  const yBg = useTransform(scrollY, [0, 500], [0, 150]);
+  const yText = useTransform(scrollY, [0, 500], [0, -100]);
+  const bgOpacity = useTransform(scrollY, [0, 400], [1, 0]);
+  const textOpacity = useTransform(scrollY, [0, 300], [1, 0]);
 
   return (
-    <div id="home" className="relative min-h-[100dvh] flex items-center overflow-hidden scroll-mt-0 py-20 sm:py-0">
-      <motion.div style={{ y: y1, opacity }} className="absolute inset-0 z-0">
-        <img src={content.image} alt="Hero" className="w-full h-full object-cover brightness-50" referrerPolicy="no-referrer" />
+    <div id="home" className="relative min-h-[100dvh] flex items-center overflow-hidden scroll-mt-0 flex-col justify-center">
+      <motion.div style={{ y: yBg, opacity: bgOpacity }} className="absolute inset-0 z-0">
+        <img 
+          src={content.image} 
+          alt="Hero" 
+          className="w-full h-full object-cover brightness-[0.4] scale-110" 
+          referrerPolicy="no-referrer" 
+        />
       </motion.div>
-      <div className="relative z-10 container mx-auto px-6 w-full mt-10 md:mt-20 text-left">
+      <motion.div 
+        style={{ y: yText, opacity: textOpacity }}
+        className="relative z-10 container mx-auto px-6 w-full pt-32 md:pt-40 pb-20 text-left"
+      >
         <motion.div 
           initial={{ opacity: 0, x: -50 }} 
           animate={{ opacity: 1, x: 0 }} 
@@ -270,7 +280,7 @@ const Hero = ({ content }: { content: any }) => {
             </a>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 };
@@ -557,6 +567,8 @@ export default function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(window.location.hash === '#admin');
   const [adminTab, setAdminTab] = useState('general');
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [recordId, setRecordId] = useState<any>(null);
+  const { scrollYProgress } = useScroll();
 
   useEffect(() => {
     const checkLogin = () => {
@@ -578,10 +590,78 @@ export default function App() {
     };
   }, []);
 
+  const [activeSection, setActiveSection] = useState('home');
+
+  useEffect(() => {
+    // Update Title and Favicon
+    if (content.general.seo.title) {
+      document.title = content.general.seo.title;
+    }
+    
+    if (content.general.faviconUrl) {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = content.general.faviconUrl;
+    }
+
+    // Meta Description
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.setAttribute('name', 'description');
+      document.getElementsByTagName('head')[0].appendChild(metaDesc);
+    }
+    metaDesc.setAttribute('content', content.general.seo.description);
+
+  }, [content.general.seo.title, content.general.seo.description, content.general.faviconUrl]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['home', 'services', 'vision', 'gallery', 'contact'];
+      for (const section of sections) {
+        const element = document.getElementById(section);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= 150 && rect.bottom >= 150) {
+            setActiveSection(section);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const openAdmin = (tab = 'general') => {
     setAdminTab(tab);
     setIsAdminOpen(true);
     window.location.hash = '#admin';
+  };
+
+  // Live repair function to ensure structure
+  const repairContent = (c: any) => {
+    if (!c) return INITIAL_CONTENT;
+    const repaired = {
+      ...INITIAL_CONTENT,
+      ...c,
+      general: { ...INITIAL_CONTENT.general, ...(c.general || {}) },
+      design: { ...INITIAL_CONTENT.design, ...(c.design || {}) },
+      pages: (c.pages && Array.isArray(c.pages) && c.pages.length > 0) ? c.pages : INITIAL_CONTENT.pages,
+      menu: (c.menu && Array.isArray(c.menu) && c.menu.length > 0) ? c.menu : INITIAL_CONTENT.menu
+    };
+
+    // Deep check for blocks in the home page
+    if (repaired.pages[0] && (!repaired.pages[0].blocks || !Array.isArray(repaired.pages[0].blocks) || repaired.pages[0].blocks.length < 2)) {
+      console.log("Repairing missing blocks for home page...");
+      repaired.pages[0].blocks = JSON.parse(JSON.stringify(INITIAL_CONTENT.pages[0].blocks));
+    }
+
+    return repaired;
   };
 
   useEffect(() => {
@@ -593,15 +673,26 @@ export default function App() {
           return;
         }
 
-        const { data, error } = await supabase
+        console.log("Fetching site content from Supabase...");
+        const { data, error, status } = await supabase
           .from('site_content')
-          .select('content')
-          .single();
+          .select('id, content')
+          .maybeSingle(); 
         
-        if (data && data.content) {
-          setContent(data.content);
+        if (error) {
+          console.error("Supabase fetch error (Status: " + status + "):", error);
+          throw error;
         }
-        if (error && error.code !== 'PGRST116') throw error;
+
+        if (data) {
+          console.log("Data fetched from Supabase, ID:", data.id);
+          setRecordId(data.id);
+          if (data.content) {
+            setContent(repairContent(data.content));
+          }
+        } else {
+          console.log("No data found in 'site_content' table (empty results).");
+        }
       } catch (err) {
         console.log("Supabase fetch info:", err);
       } finally {
@@ -618,16 +709,44 @@ export default function App() {
   }, []);
 
   const handleSaveContent = async (newContent: any) => {
-    const supabase = getSupabase();
-    if (!supabase) return;
+    setIsAdminOpen(false);
+    try {
+      const supabase = getSupabase();
+      if (!supabase) return;
 
-    const { error } = await supabase
-      .from('site_content')
-      .update({ content: newContent })
-      .eq('id', 1); // Assuming ID 1 is the main content record
+      const finalizedContent = repairContent(newContent);
+      
+      let res;
+      if (recordId) {
+        res = await supabase
+          .from('site_content')
+          .update({ content: finalizedContent })
+          .eq('id', recordId);
+      } else {
+        res = await supabase
+          .from('site_content')
+          .insert({ content: finalizedContent })
+          .select()
+          .maybeSingle();
+        
+        if (res.data) setRecordId(res.data.id);
+      }
 
-    if (error) throw error;
-    setContent(newContent);
+      if (res.error) throw res.error;
+      
+      setContent(finalizedContent);
+      console.log("Content saved successfully!");
+    } catch (err) {
+      console.error("Error saving content:", err);
+      alert("Değişiklikler kaydedilemedi. Lütfen Supabase Storage ve Database yapılandırmasını kontrol edin.");
+    }
+  };
+
+  const handleResetContent = async () => {
+    if (window.confirm('Tüm site verileri ilk haline (3 saat önceki verilere) döndürülecek. Bu işlem geri alınamaz. Emin misiniz?')) {
+      await handleSaveContent(INITIAL_CONTENT);
+      window.location.reload();
+    }
   };
 
   // Sync design variables
@@ -746,10 +865,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen font-sans selection:bg-orange-600 selection:text-white bg-white">
+      {/* Scroll Progress Bar */}
+      <motion.div 
+        className="fixed top-0 left-0 h-1 bg-orange-600 z-[200] origin-left"
+        style={{ scaleX: scrollYProgress }}
+      />
+      
       {isAdminOpen && (
         <AdminPanel 
           initialContent={content} 
           onSave={handleSaveContent} 
+          onChange={(newContent) => setContent(newContent)}
+          onReset={handleResetContent}
           onClose={() => {
             setIsAdminOpen(false);
             window.location.hash = '/';
@@ -791,7 +918,10 @@ export default function App() {
                 {item.label}
                 <span 
                   style={{ backgroundColor: content.design.primaryColor }}
-                  className="absolute -bottom-2 left-0 w-0 h-[2px] transition-all group-hover:w-full"
+                  className={`absolute -bottom-2 left-0 h-[2px] transition-all ${
+                    activeSection === item.path.replace('#', '') || (activeSection === 'home' && item.path === '/') 
+                    ? 'w-full opacity-100' : 'w-0 opacity-0 group-hover:w-full group-hover:opacity-100'
+                  }`}
                 ></span>
               </a>
             ))}
@@ -845,41 +975,13 @@ export default function App() {
       {/* Dynamic Content */}
       <main>
         {activePage.blocks.map((block) => (
-          <div key={block.id} className="scroll-mt-24 relative group/section" id={block.type}>
-            {isAdminLoggedIn && (
-              <button 
-                onClick={() => {
-                  const tabMap: any = {
-                    'hero': 'hero',
-                    'stats': 'stats',
-                    'services': 'services',
-                    'vision': 'vision',
-                    'businessCard': 'bizcard',
-                    'gallery': 'gallery',
-                    'contact': 'contact'
-                  };
-                  openAdmin(tabMap[block.type] || 'general');
-                }}
-                className="absolute top-4 right-4 z-[60] bg-orange-600 text-white p-3 rounded-full shadow-2xl opacity-0 group-hover/section:opacity-100 transition-all hover:scale-110 flex items-center gap-2 font-bold text-xs"
-              >
-                <Edit className="w-4 h-4" />
-                <span>BÖLÜMÜ DÜZENLE</span>
-              </button>
-            )}
+          <div key={block.id} className="scroll-mt-24 relative" id={block.type}>
             {renderBlock(block)}
           </div>
         ))}
       </main>
 
-      {isAdminLoggedIn && !isAdminOpen && (
-        <button 
-          onClick={() => openAdmin('general')}
-          className="fixed bottom-6 right-6 z-[90] bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 hover:bg-slate-800 transition-all group"
-        >
-          <Settings className="w-5 h-5 text-orange-500 group-hover:rotate-90 transition-transform duration-500" />
-          <span className="font-bold text-sm">Yönetici Paneli</span>
-        </button>
-      )}
+      {/* Admin management through #admin route only */}
 
       {/* Dynamic Footer */}
       <footer className="bg-slate-950 py-24 border-t border-white/5 relative overflow-hidden">
@@ -978,9 +1080,8 @@ export default function App() {
                <a href="#" className="hover:text-orange-500 transition-colors">Gizlilik</a>
                <a href="#" className="hover:text-orange-500 transition-colors">KVKK</a>
                <a href="#" className="hover:text-orange-500 transition-colors">İletişim</a>
-               <a href="#admin" className="text-slate-600 hover:text-orange-500 transition-colors ml-4 border-l border-white/5 pl-4 flex items-center gap-1 group">
-                 <Lock className="w-2.5 h-2.5 opacity-30 group-hover:opacity-100 transition-opacity" />
-                 <span>Yönetici</span>
+               <a href="#admin" className="opacity-10 hover:opacity-100 transition-opacity ml-4 border-l border-white/5 pl-4 flex items-center italic text-slate-600">
+                 <Lock className="w-2 h-2" />
                </a>
             </div>
           </div>

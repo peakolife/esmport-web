@@ -13,9 +13,28 @@ export const getSupabase = () => {
   
   try {
     if (!supabaseInstance) {
-      // Basic URL validation
-      new URL(supabaseUrl);
-      supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+      let normalizedUrl = supabaseUrl.trim();
+      
+      // 1. Remove any protocol if present for clean processing
+      const hasProtocol = normalizedUrl.startsWith('http');
+      let pureUrl = hasProtocol ? normalizedUrl.replace(/^https?:\/\//, '') : normalizedUrl;
+      
+      // 2. Remove any accidental trailing paths like /rest/v1, /storage/v1, etc.
+      // These are added automatically by the SDK, including them in the base URL breaks paths.
+      pureUrl = pureUrl.split('/')[0]; 
+      
+      // 3. Handle project reference only (e.g. "abc-xyz")
+      if (!pureUrl.includes('.')) {
+        pureUrl = `${pureUrl}.supabase.co`;
+      }
+      
+      // 4. Final reconstruction
+      normalizedUrl = `https://${pureUrl}`;
+      
+      console.log("Initializing Supabase with URL:", normalizedUrl);
+        
+      new URL(normalizedUrl);
+      supabaseInstance = createClient(normalizedUrl, supabaseAnonKey);
     }
     return supabaseInstance;
   } catch (err) {
@@ -31,18 +50,20 @@ export const uploadImage = async (file: File) => {
     return null;
   }
 
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+  // Clean file name and generate a safe path
+  const fileExt = file.name.split('.').pop() || 'png';
+  const safeName = file.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const fileName = `${Date.now()}_${safeName}.${fileExt}`;
   
-  // Try uploading directly to the bucket root first for better compatibility
+  // Use a direct path - some Supabase configs prefer no folders or specific ones
   const filePath = fileName;
 
   try {
-    const { error: uploadError, data: uploadData } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('assets')
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: true // Allow overwriting same-named files if needed
       });
 
     if (uploadError) {
@@ -54,7 +75,7 @@ export const uploadImage = async (file: File) => {
     return data.publicUrl;
   } catch (err: any) {
     console.error('Error in uploadImage:', err);
-    throw err; // Re-throw to handle in UI
+    throw err;
   }
 };
 
