@@ -16,6 +16,8 @@ import {
   Users, 
   Trophy,
   ArrowRight,
+  Twitter,
+  Youtube,
   Menu,
   X,
   Instagram,
@@ -62,6 +64,8 @@ interface SiteContent {
       instagram: string;
       facebook: string;
       linkedin: string;
+      twitter: string;
+      youtube: string;
     };
   };
   design: {
@@ -95,7 +99,9 @@ const INITIAL_CONTENT: SiteContent = {
     social: {
       instagram: "https://instagram.com",
       facebook: "https://facebook.com",
-      linkedin: "https://linkedin.com"
+      linkedin: "https://linkedin.com",
+      twitter: "https://twitter.com",
+      youtube: "https://youtube.com"
     }
   },
   design: {
@@ -533,18 +539,6 @@ const Contact = ({ contact, isEnabled, speed, id }: { contact: any, isEnabled: b
   </section>
 );
 
-const Footer = () => (
-  <footer className="bg-slate-950 text-white py-12 border-t border-white/5">
-    <div className="max-w-7xl mx-auto px-6 text-center">
-          <div className="flex items-center justify-center gap-2 mb-6">
-        <Truck className="text-orange-600 w-6 h-6" />
-        <span className="text-xl font-bold tracking-tighter uppercase font-display">ESM<span className="text-orange-600">PORT</span></span>
-      </div>
-      <p className="text-gray-600 text-sm">© 2026 ESM PORT LOJİSTİK. Limandan depoya güvenin adresi.</p>
-    </div>
-  </footer>
-);
-
 const hexToRgb = (hex: string) => {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -884,14 +878,39 @@ export default function App() {
                     <Linkedin className="w-4 h-4 transition-transform group-hover:scale-110" />
                   </a>
                 )}
+                {content.general.social?.twitter && (
+                  <a href={content.general.social.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center hover:bg-orange-600 transition-all border border-white/10 text-slate-400 hover:text-white cursor-pointer group">
+                    <Twitter className="w-4 h-4 transition-transform group-hover:scale-110" />
+                  </a>
+                )}
+                {content.general.social?.youtube && (
+                  <a href={content.general.social.youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center hover:bg-orange-600 transition-all border border-white/10 text-slate-400 hover:text-white cursor-pointer group">
+                    <Youtube className="w-4 h-4 transition-transform group-hover:scale-110" />
+                  </a>
+                )}
               </div>
             </div>
 
             <div className="space-y-6">
               <h4 className="text-white font-black text-xs uppercase tracking-widest border-l-4 border-orange-600 pl-3">HIZLI MENÜ</h4>
               <div className="grid gap-3">
-                {content.menu.map(item => (
-                  <a key={item.id} href={item.path} className="text-slate-500 hover:text-orange-500 text-sm font-bold transition-colors flex items-center gap-2 group">
+                {[...content.menu].sort((a, b) => a.order - b.order).map(item => (
+                  <a 
+                    key={item.id} 
+                    href={item.path} 
+                    onClick={(e) => {
+                      if (item.path.startsWith('#')) {
+                        e.preventDefault();
+                        const id = item.path.substring(1);
+                        const element = document.getElementById(id);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
+                          window.history.pushState(null, '', item.path);
+                        }
+                      }
+                    }}
+                    className="text-slate-500 hover:text-orange-500 text-sm font-bold transition-colors flex items-center gap-2 group"
+                  >
                     <div className="w-1 h-1 bg-slate-800 rounded-full group-hover:bg-orange-600 transition-colors" />
                     {item.label}
                   </a>

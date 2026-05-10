@@ -17,7 +17,8 @@ import {
   Layout,
   Briefcase,
   Contact as ContactIcon,
-  Eye
+  Eye,
+  Menu as MenuIcon
 } from 'lucide-react';
 import { getSupabase, uploadImage } from '../lib/supabase';
 
@@ -191,6 +192,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
             <SidebarLink icon={<Settings />} label="Genel Ayarlar" active={activeTab === 'general'} onClick={() => setActiveTab('general')} />
             <SidebarLink icon={<Layout />} label="Giriş Bölümü (Hero)" active={activeTab === 'hero'} onClick={() => setActiveTab('hero')} />
             <SidebarLink icon={<Briefcase />} label="Hizmetlerimiz" active={activeTab === 'services'} onClick={() => setActiveTab('services')} />
+            <SidebarLink icon={<MenuIcon />} label="Menü Yönetimi" active={activeTab === 'menu'} onClick={() => setActiveTab('menu')} />
             <SidebarLink icon={<ImageIcon />} label="Galeri" active={activeTab === 'gallery'} onClick={() => setActiveTab('gallery')} />
             <SidebarLink icon={<ContactIcon />} label="İletişim" active={activeTab === 'contact'} onClick={() => setActiveTab('contact')} />
           </nav>
@@ -243,6 +245,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                     value={content.general.seo.description} 
                     onChange={(val) => updateNestedField(['general', 'seo', 'description'], val)} 
                   />
+                  <div className="pt-4 border-t border-slate-800">
+                    <h3 className="text-sm font-bold text-slate-400 mb-4 uppercase tracking-wider">Sosyal Medya Linkleri</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <InputField 
+                        label="Instagram" 
+                        value={content.general.social.instagram} 
+                        onChange={(val) => updateNestedField(['general', 'social', 'instagram'], val)} 
+                      />
+                      <InputField 
+                        label="LinkedIn" 
+                        value={content.general.social.linkedin} 
+                        onChange={(val) => updateNestedField(['general', 'social', 'linkedin'], val)} 
+                      />
+                      <InputField 
+                        label="Twitter (X)" 
+                        value={content.general.social.twitter} 
+                        onChange={(val) => updateNestedField(['general', 'social', 'twitter'], val)} 
+                      />
+                      <InputField 
+                        label="YouTube" 
+                        value={content.general.social.youtube} 
+                        onChange={(val) => updateNestedField(['general', 'social', 'youtube'], val)} 
+                      />
+                    </div>
+                  </div>
                   <ImageUploadField 
                     label="Favicon Bildirimi" 
                     value={content.general.faviconUrl} 
@@ -312,6 +339,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                     <Briefcase className="w-5 h-5 text-orange-500" />
                     <h2 className="text-xl font-bold">Hizmetlerimiz</h2>
                   </div>
+                  <button 
+                    onClick={() => {
+                      const newPages = [...content.pages];
+                      const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'services');
+                      if (blockIndex === -1) return;
+                      
+                      if (!newPages[0].blocks[blockIndex].content.items) {
+                        newPages[0].blocks[blockIndex].content.items = [];
+                      }
+                      
+                      newPages[0].blocks[blockIndex].content.items.push({
+                        title: 'Yeni Hizmet',
+                        description: 'Hizmet açıklamasını buraya yazın.'
+                      });
+                      setContent({...content, pages: newPages});
+                    }}
+                    className="flex items-center gap-2 text-sm bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
+                  >
+                    <Plus className="w-4 h-4" /> Hizmet Ekle
+                  </button>
                 </div>
                 <div className="space-y-4">
                   {(() => {
@@ -320,6 +367,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                       <div key={idx} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-4">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold text-orange-500 uppercase">Hizmet #{idx + 1}</span>
+                          <button 
+                            onClick={() => {
+                              const newPages = [...content.pages];
+                              const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'services');
+                              newPages[0].blocks[blockIndex].content.items.splice(idx, 1);
+                              setContent({...content, pages: newPages});
+                            }}
+                            className="text-red-500 hover:text-red-400 p-1"
+                            title="Hizmeti Sil"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                         <InputField 
                           label="Hizmet Adı" 
@@ -344,6 +403,89 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                       </div>
                     ));
                   })()}
+                </div>
+              </section>
+            )}
+
+            {/* Menu Management */}
+            {activeTab === 'menu' && (
+              <section className="space-y-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <MenuIcon className="w-5 h-5 text-orange-500" />
+                    <h2 className="text-xl font-bold">Menü Yönetimi</h2>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const newContent = {...content};
+                      const nextId = (Math.max(...newContent.menu.map((m: any) => parseInt(m.id) || 0)) + 1).toString();
+                      newContent.menu.push({
+                        id: nextId,
+                        label: 'Yeni Menü',
+                        path: '#',
+                        order: newContent.menu.length
+                      });
+                      setContent(newContent);
+                    }}
+                    className="flex items-center gap-2 text-sm bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
+                  >
+                    <Plus className="w-4 h-4" /> Menü Ekle
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {[...content.menu].sort((a, b) => a.order - b.order).map((item: any, idx: number) => (
+                    <div key={item.id} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-orange-500 uppercase">Menü Öğesi #{idx + 1}</span>
+                        <button 
+                          onClick={() => {
+                            const newContent = {...content};
+                            newContent.menu = newContent.menu.filter((m: any) => m.id !== item.id);
+                            setContent(newContent);
+                          }}
+                          className="text-red-500 hover:text-red-400 p-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <InputField 
+                          label="Etiket" 
+                          value={item.label} 
+                          onChange={(val) => {
+                            const newContent = {...content};
+                            const menuIdx = newContent.menu.findIndex((m: any) => m.id === item.id);
+                            newContent.menu[menuIdx].label = val;
+                            setContent(newContent);
+                          }} 
+                        />
+                        <InputField 
+                          label="Link (Path)" 
+                          value={item.path} 
+                          onChange={(val) => {
+                            const newContent = {...content};
+                            const menuIdx = newContent.menu.findIndex((m: any) => m.id === item.id);
+                            newContent.menu[menuIdx].path = val;
+                            setContent(newContent);
+                          }} 
+                        />
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Sıra</label>
+                          <input 
+                            type="number" 
+                            value={item.order}
+                            onChange={(e) => {
+                              const newContent = {...content};
+                              const menuIdx = newContent.menu.findIndex((m: any) => m.id === item.id);
+                              newContent.menu[menuIdx].order = parseInt(e.target.value) || 0;
+                              setContent(newContent);
+                            }}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </section>
             )}
