@@ -26,22 +26,35 @@ export const getSupabase = () => {
 
 export const uploadImage = async (file: File) => {
   const supabase = getSupabase();
-  if (!supabase) return null;
-
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-  const filePath = `site-assets/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('assets') // Assuming a bucket named 'assets' exists or will be created
-    .upload(filePath, file);
-
-  if (uploadError) {
-    console.error('Error uploading image:', uploadError);
+  if (!supabase) {
+    console.error("Supabase client not initialized. Check your environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).");
     return null;
   }
 
-  const { data } = supabase.storage.from('assets').getPublicUrl(filePath);
-  return data.publicUrl;
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+  
+  // Try uploading directly to the bucket root first for better compatibility
+  const filePath = fileName;
+
+  try {
+    const { error: uploadError, data: uploadData } = await supabase.storage
+      .from('assets')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Supabase upload error details:', uploadError);
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage.from('assets').getPublicUrl(filePath);
+    return data.publicUrl;
+  } catch (err: any) {
+    console.error('Error in uploadImage:', err);
+    throw err; // Re-throw to handle in UI
+  }
 };
 

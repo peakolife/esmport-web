@@ -23,7 +23,10 @@ import {
   Instagram,
   Facebook,
   Linkedin,
-  AlertCircle
+  AlertCircle,
+  Edit,
+  Settings,
+  Lock
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AdminPanel } from './components/AdminPanel';
@@ -221,8 +224,8 @@ const INITIAL_CONTENT: SiteContent = {
 // Leftovers removed - Stage 1
 
 const IconComponent = ({ name, className }: { name: string, className?: string }) => {
-  const icons: any = { Truck, ShieldCheck, Clock, MapPin, Globe, Phone, Mail, BarChart3, Users, Trophy };
-  const Icon = icons[name] || Truck;
+  const icons: Record<string, any> = { Truck, ShieldCheck, Clock, MapPin, Globe, Phone, Mail, BarChart3, Users, Trophy };
+  const Icon = (name && icons[name]) ? icons[name] : Truck;
   return <Icon className={className} />;
 };
 
@@ -552,16 +555,34 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminOpen, setIsAdminOpen] = useState(window.location.hash === '#admin');
+  const [adminTab, setAdminTab] = useState('general');
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
   useEffect(() => {
+    const checkLogin = () => {
+      setIsAdminLoggedIn(localStorage.getItem('admin_session') === 'true');
+    };
+    checkLogin();
+    window.addEventListener('storage', checkLogin);
+    // Also check on hash change since AdminPanel might set it
     const handleHashChange = () => {
       const hash = window.location.hash || '/';
       setCurrentPath(hash);
       setIsAdminOpen(hash === '#admin');
+      checkLogin();
     };
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('storage', checkLogin);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, []);
+
+  const openAdmin = (tab = 'general') => {
+    setAdminTab(tab);
+    setIsAdminOpen(true);
+    window.location.hash = '#admin';
+  };
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -732,7 +753,9 @@ export default function App() {
           onClose={() => {
             setIsAdminOpen(false);
             window.location.hash = '/';
+            setIsAdminLoggedIn(localStorage.getItem('admin_session') === 'true');
           }} 
+          defaultTab={adminTab}
         />
       )}
       {/* Navigation */}
@@ -822,11 +845,41 @@ export default function App() {
       {/* Dynamic Content */}
       <main>
         {activePage.blocks.map((block) => (
-          <div key={block.id} className="scroll-mt-24" id={block.type}>
+          <div key={block.id} className="scroll-mt-24 relative group/section" id={block.type}>
+            {isAdminLoggedIn && (
+              <button 
+                onClick={() => {
+                  const tabMap: any = {
+                    'hero': 'hero',
+                    'stats': 'stats',
+                    'services': 'services',
+                    'vision': 'vision',
+                    'businessCard': 'bizcard',
+                    'gallery': 'gallery',
+                    'contact': 'contact'
+                  };
+                  openAdmin(tabMap[block.type] || 'general');
+                }}
+                className="absolute top-4 right-4 z-[60] bg-orange-600 text-white p-3 rounded-full shadow-2xl opacity-0 group-hover/section:opacity-100 transition-all hover:scale-110 flex items-center gap-2 font-bold text-xs"
+              >
+                <Edit className="w-4 h-4" />
+                <span>BÖLÜMÜ DÜZENLE</span>
+              </button>
+            )}
             {renderBlock(block)}
           </div>
         ))}
       </main>
+
+      {isAdminLoggedIn && !isAdminOpen && (
+        <button 
+          onClick={() => openAdmin('general')}
+          className="fixed bottom-6 right-6 z-[90] bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 hover:bg-slate-800 transition-all group"
+        >
+          <Settings className="w-5 h-5 text-orange-500 group-hover:rotate-90 transition-transform duration-500" />
+          <span className="font-bold text-sm">Yönetici Paneli</span>
+        </button>
+      )}
 
       {/* Dynamic Footer */}
       <footer className="bg-slate-950 py-24 border-t border-white/5 relative overflow-hidden">
@@ -925,6 +978,10 @@ export default function App() {
                <a href="#" className="hover:text-orange-500 transition-colors">Gizlilik</a>
                <a href="#" className="hover:text-orange-500 transition-colors">KVKK</a>
                <a href="#" className="hover:text-orange-500 transition-colors">İletişim</a>
+               <a href="#admin" className="text-slate-600 hover:text-orange-500 transition-colors ml-4 border-l border-white/5 pl-4 flex items-center gap-1 group">
+                 <Lock className="w-2.5 h-2.5 opacity-30 group-hover:opacity-100 transition-opacity" />
+                 <span>Yönetici</span>
+               </a>
             </div>
           </div>
         </motion.div>

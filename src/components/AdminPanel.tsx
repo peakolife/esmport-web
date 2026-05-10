@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Save, 
-  Image as ImageIcon, 
+  Image as LuImage, 
   Plus, 
   Trash2, 
   ChevronRight, 
@@ -18,7 +18,11 @@ import {
   Briefcase,
   Contact as ContactIcon,
   Eye,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  BarChart3,
+  Award,
+  IdCard,
+  X
 } from 'lucide-react';
 import { getSupabase, uploadImage } from '../lib/supabase';
 
@@ -26,11 +30,12 @@ interface AdminPanelProps {
   initialContent: any;
   onSave: (newContent: any) => Promise<void>;
   onClose: () => void;
+  defaultTab?: string;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, onClose }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, onClose, defaultTab }) => {
   const [content, setContent] = useState(initialContent);
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(defaultTab || 'general');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -89,16 +94,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
     setContent(newContent);
   };
 
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const handleFileUpload = async (path: string[], e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
-    const url = await uploadImage(file);
-    if (url) {
-      updateNestedField(path, url);
+    // Basic file size check (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("Dosya boyutu çok büyük (max 10MB).");
+      return;
     }
-    setIsUploading(false);
+
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const url = await uploadImage(file);
+      if (url) {
+        updateNestedField(path, url);
+        setSaveStatus('success');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      let message = "Görsel yüklenemedi.";
+      if (err.message && err.message.includes('bucket_not_found')) {
+        message = "Supabase 'assets' bucket bulunamadı. Lütfen Supabase panelinden oluşturun.";
+      } else if (err.message && err.message.includes('New policies')) {
+        message = "Supabase saklama alanı (storage) izinleri yetersiz.";
+      }
+      setUploadError(message);
+      setSaveStatus('error');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   if (!isAuthenticated) {
@@ -163,14 +192,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
           <button 
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-lg shadow-orange-600/10"
+            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-lg shadow-orange-600/20"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {isSaving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+            {isSaving ? 'Kaydediliyor...' : 'Yayınla / Kaydet'}
           </button>
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-700"
+            className="p-2 hover:bg-slate-800 rounded-lg transition-colors border border-slate-800"
             title="Siteyi Gör"
           >
             <Eye className="w-5 h-5 text-slate-400" />
@@ -192,14 +221,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
             <SidebarLink icon={<Settings />} label="Genel Ayarlar" active={activeTab === 'general'} onClick={() => setActiveTab('general')} />
             <SidebarLink icon={<Layout />} label="Giriş Bölümü (Hero)" active={activeTab === 'hero'} onClick={() => setActiveTab('hero')} />
             <SidebarLink icon={<Briefcase />} label="Hizmetlerimiz" active={activeTab === 'services'} onClick={() => setActiveTab('services')} />
+            <SidebarLink icon={<BarChart3 />} label="İstatistikler" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} />
+            <SidebarLink icon={<Award />} label="Vizyonumuz" active={activeTab === 'vision'} onClick={() => setActiveTab('vision')} />
+            <SidebarLink icon={<IdCard />} label="Kartvizit" active={activeTab === 'bizcard'} onClick={() => setActiveTab('bizcard')} />
             <SidebarLink icon={<MenuIcon />} label="Menü Yönetimi" active={activeTab === 'menu'} onClick={() => setActiveTab('menu')} />
-            <SidebarLink icon={<ImageIcon />} label="Galeri" active={activeTab === 'gallery'} onClick={() => setActiveTab('gallery')} />
+            <SidebarLink icon={<LuImage />} label="Galeri" active={activeTab === 'gallery'} onClick={() => setActiveTab('gallery')} />
             <SidebarLink icon={<ContactIcon />} label="İletişim" active={activeTab === 'contact'} onClick={() => setActiveTab('contact')} />
           </nav>
         </aside>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-6 bg-slate-950">
+        <main className="flex-1 overflow-y-auto p-6 bg-slate-950 relative">
+          {/* Floating Save Button for Mobile */}
+          <div className="fixed bottom-6 right-6 z-[110] lg:hidden">
+            <button 
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:bg-slate-800 text-white p-4 rounded-full shadow-2xl shadow-orange-600/40 transition-all active:scale-95"
+            >
+              {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : <Save className="w-6 h-6" />}
+            </button>
+          </div>
+
           <div className="max-w-4xl mx-auto space-y-8 pb-32">
             <AnimatePresence mode="wait">
               {saveStatus === 'success' && (
@@ -211,6 +254,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   Değişiklikler başarıyla yayınlandı!
+                </motion.div>
+              )}
+              {uploadError && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="bg-red-500/10 text-red-400 border border-red-500/20 p-3 rounded-lg flex items-center gap-3 text-sm font-medium"
+                >
+                  <XCircle className="w-4 h-4" />
+                  {uploadError}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -312,16 +366,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                     />
                     <ImageUploadField 
                       label="Arka Plan Görseli" 
-                      value={content.pages[0].blocks.find((b: any) => b.type === 'hero').content.backgroundImage} 
+                      value={content.pages[0].blocks.find((b: any) => b.type === 'hero').content.image} 
                       onUpload={(e) => {
                         const newPages = [...content.pages];
                         const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'hero');
-                        handleFileUpload(['pages', '0', 'blocks', blockIndex.toString(), 'content', 'backgroundImage'], e);
+                        handleFileUpload(['pages', '0', 'blocks', blockIndex.toString(), 'content', 'image'], e);
                       }}
                       onUrlChange={(val) => {
                         const newPages = [...content.pages];
                         const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'hero');
-                        newPages[0].blocks[blockIndex].content.backgroundImage = val;
+                        newPages[0].blocks[blockIndex].content.image = val;
                         setContent({...content, pages: newPages});
                       }}
                       isUploading={isUploading}
@@ -351,7 +405,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                       
                       newPages[0].blocks[blockIndex].content.items.push({
                         title: 'Yeni Hizmet',
-                        description: 'Hizmet açıklamasını buraya yazın.'
+                        desc: 'Hizmet açıklamasını buraya yazın.',
+                        icon: 'Truck',
+                        color: 'bg-orange-50 text-orange-600'
                       });
                       setContent({...content, pages: newPages});
                     }}
@@ -392,11 +448,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                         />
                         <TextAreaField 
                           label="Açıklama" 
-                          value={item.description} 
+                          value={item.desc} 
                           onChange={(val) => {
                             const newPages = [...content.pages];
                             const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'services');
-                            newPages[0].blocks[blockIndex].content.items[idx].description = val;
+                            newPages[0].blocks[blockIndex].content.items[idx].desc = val;
                             setContent({...content, pages: newPages});
                           }} 
                         />
@@ -404,6 +460,236 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                     ));
                   })()}
                 </div>
+              </section>
+            )}
+
+            {/* Stats Management */}
+            {activeTab === 'stats' && (
+              <section className="space-y-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-orange-500" />
+                    <h2 className="text-xl font-bold">Site İstatistikleri</h2>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const newPages = [...content.pages];
+                      const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'stats');
+                      if (blockIndex === -1) return;
+                      
+                      newPages[0].blocks[blockIndex].content.push({
+                        label: 'Yeni Bilgi',
+                        value: '0',
+                        icon: 'Truck'
+                      });
+                      setContent({...content, pages: newPages});
+                    }}
+                    className="flex items-center gap-2 text-sm bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
+                  >
+                    <Plus className="w-4 h-4" /> İstatistik Ekle
+                  </button>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {(() => {
+                    const statsBlock = content.pages[0].blocks.find((b: any) => b.type === 'stats');
+                    return statsBlock?.content?.map((stat: any, idx: number) => (
+                      <div key={idx} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-orange-500 uppercase">İstatistik #{idx + 1}</span>
+                          <button 
+                            onClick={() => {
+                              const newPages = [...content.pages];
+                              const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'stats');
+                              newPages[0].blocks[blockIndex].content.splice(idx, 1);
+                              setContent({...content, pages: newPages});
+                            }}
+                            className="text-red-500 hover:text-red-400 p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <InputField 
+                          label="Etiket" 
+                          value={stat.label} 
+                          onChange={(val) => {
+                            const newPages = [...content.pages];
+                            const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'stats');
+                            newPages[0].blocks[blockIndex].content[idx].label = val;
+                            setContent({...content, pages: newPages});
+                          }} 
+                        />
+                        <InputField 
+                          label="Değer" 
+                          value={stat.value} 
+                          onChange={(val) => {
+                            const newPages = [...content.pages];
+                            const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'stats');
+                            newPages[0].blocks[blockIndex].content[idx].value = val;
+                            setContent({...content, pages: newPages});
+                          }} 
+                        />
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">İkon (Lucide)</label>
+                          <select 
+                            value={stat.icon}
+                            onChange={(e) => {
+                              const newPages = [...content.pages];
+                              const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'stats');
+                              newPages[0].blocks[blockIndex].content[idx].icon = e.target.value;
+                              setContent({...content, pages: newPages});
+                            }}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all text-sm"
+                          >
+                            <option value="Truck">Kamyon (Truck)</option>
+                            <option value="Users">Kullanıcılar (Users)</option>
+                            <option value="Trophy">Kupa (Trophy)</option>
+                            <option value="BarChart3">Grafik (BarChart3)</option>
+                            <option value="MapPin">Konum (MapPin)</option>
+                            <option value="ShieldCheck">Güvenlik (ShieldCheck)</option>
+                          </select>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </section>
+            )}
+
+            {/* Vision Management */}
+            {activeTab === 'vision' && (
+              <section className="space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Award className="w-5 h-5 text-orange-500" />
+                  <h2 className="text-xl font-bold">Vizyon ve Deneyim</h2>
+                </div>
+                {(() => {
+                  const visionBlock = content.pages[0].blocks.find((b: any) => b.type === 'vision');
+                  if (!visionBlock) return null;
+                  const idx = content.pages[0].blocks.findIndex((b: any) => b.type === 'vision');
+                  
+                  return (
+                    <div className="grid gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                      <InputField 
+                        label="Üst Başlık" 
+                        value={visionBlock.content.sectionTitle} 
+                        onChange={(val) => {
+                          const newPages = [...content.pages];
+                          newPages[0].blocks[idx].content.sectionTitle = val;
+                          setContent({...content, pages: newPages});
+                        }} 
+                      />
+                      <InputField 
+                        label="Ana Başlık" 
+                        value={visionBlock.content.title} 
+                        onChange={(val) => {
+                          const newPages = [...content.pages];
+                          newPages[0].blocks[idx].content.title = val;
+                          setContent({...content, pages: newPages});
+                        }} 
+                      />
+                      <TextAreaField 
+                        label="Açıklama" 
+                        value={visionBlock.content.description} 
+                        onChange={(val) => {
+                          const newPages = [...content.pages];
+                          newPages[0].blocks[idx].content.description = val;
+                          setContent({...content, pages: newPages});
+                        }} 
+                      />
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <InputField 
+                          label="Deneyim Yılı" 
+                          value={visionBlock.content.experienceYear} 
+                          onChange={(val) => {
+                            const newPages = [...content.pages];
+                            newPages[0].blocks[idx].content.experienceYear = val;
+                            setContent({...content, pages: newPages});
+                          }} 
+                        />
+                        <ImageUploadField 
+                          label="Vizyon Görseli" 
+                          value={visionBlock.content.image} 
+                          onUpload={(e) => handleFileUpload(['pages', '0', 'blocks', idx.toString(), 'content', 'image'], e)}
+                          onUrlChange={(val) => {
+                            const newPages = [...content.pages];
+                            newPages[0].blocks[idx].content.image = val;
+                            setContent({...content, pages: newPages});
+                          }}
+                          isUploading={isUploading}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </section>
+            )}
+
+            {/* Business Card Management */}
+            {activeTab === 'bizcard' && (
+              <section className="space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <IdCard className="w-5 h-5 text-orange-500" />
+                  <h2 className="text-xl font-bold">Dijital Kartvizit Ayarları</h2>
+                </div>
+                {(() => {
+                  const bizBlock = content.pages[0].blocks.find((b: any) => b.type === 'businessCard');
+                  if (!bizBlock) return null;
+                  const idx = content.pages[0].blocks.findIndex((b: any) => b.type === 'businessCard');
+                  
+                  return (
+                    <div className="grid gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <InputField 
+                          label="Ad Soyad" 
+                          value={bizBlock.content.fullName} 
+                          onChange={(val) => {
+                            const newPages = [...content.pages];
+                            newPages[0].blocks[idx].content.fullName = val;
+                            setContent({...content, pages: newPages});
+                          }} 
+                        />
+                        <InputField 
+                          label="Pozisyon / Ünvan" 
+                          value={bizBlock.content.position} 
+                          onChange={(val) => {
+                            const newPages = [...content.pages];
+                            newPages[0].blocks[idx].content.position = val;
+                            setContent({...content, pages: newPages});
+                          }} 
+                        />
+                      </div>
+                      <TextAreaField 
+                        label="Kısa Açıklama" 
+                        value={bizBlock.content.description} 
+                        onChange={(val) => {
+                          const newPages = [...content.pages];
+                          newPages[0].blocks[idx].content.description = val;
+                          setContent({...content, pages: newPages});
+                        }} 
+                      />
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <InputField 
+                          label="Bölüm Üst Başlığı" 
+                          value={bizBlock.content.sectionTitle} 
+                          onChange={(val) => {
+                            const newPages = [...content.pages];
+                            newPages[0].blocks[idx].content.sectionTitle = val;
+                            setContent({...content, pages: newPages});
+                          }} 
+                        />
+                        <InputField 
+                          label="Bölüm Ana Başlığı" 
+                          value={bizBlock.content.sectionHeading} 
+                          onChange={(val) => {
+                            const newPages = [...content.pages];
+                            newPages[0].blocks[idx].content.sectionHeading = val;
+                            setContent({...content, pages: newPages});
+                          }} 
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
               </section>
             )}
 
@@ -495,7 +781,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
               <section className="space-y-6">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <ImageIcon className="w-5 h-5 text-orange-500" />
+                    <LuImage className="w-5 h-5 text-orange-500" />
                     <h2 className="text-xl font-bold">Galeri Görselleri</h2>
                   </div>
                   <button 
@@ -503,8 +789,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                       const newPages = [...content.pages];
                       const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'gallery');
                       newPages[0].blocks[blockIndex].content.images.push({
-                        url: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&q=80',
-                        caption: 'Yeni Görsel'
+                        url: 'input_file_0.png',
+                        title: 'Yeni Görsel'
                       });
                       setContent({...content, pages: newPages});
                     }}
@@ -548,12 +834,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                           </div>
                         </div>
                         <InputField 
-                          label="Alt Başlık" 
-                          value={img.caption} 
+                          label="Görsel Başlığı" 
+                          value={img.title} 
                           onChange={(val) => {
                             const newPages = [...content.pages];
                             const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'gallery');
-                            newPages[0].blocks[blockIndex].content.images[idx].caption = val;
+                            newPages[0].blocks[blockIndex].content.images[idx].title = val;
                             setContent({...content, pages: newPages});
                           }}
                         />
@@ -643,6 +929,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                 </section>
               );
             })()}
+            {/* Form Footer Save Button */}
+            <div className="pt-10 border-t border-slate-800 mt-10">
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="w-full flex items-center justify-center gap-3 bg-orange-600 hover:bg-orange-500 disabled:bg-slate-800 text-white py-4 rounded-2xl text-lg font-bold transition-all shadow-xl shadow-orange-600/20"
+              >
+                {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : <Save className="w-6 h-6" />}
+                {isSaving ? 'Değişiklikler Kaydediliyor...' : 'YAPILAN DEĞİŞİKLİKLERİ KAYDET'}
+              </button>
+              <p className="text-center text-slate-500 text-sm mt-4">
+                Değişikliklerin sitede görünmesi için bu butona basmanız gerekmektedir.
+              </p>
+            </div>
           </div>
         </main>
       </div>
@@ -695,7 +995,7 @@ const ImageUploadField = ({ label, value, onUpload, onUrlChange, isUploading }: 
     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</label>
     <div className="flex gap-4">
       <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
-        {value ? <img src={value} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-6 h-6 text-slate-800" /></div>}
+        {value ? <img src={value} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><LuImage className="w-6 h-6 text-slate-800" /></div>}
       </div>
       <div className="flex-1 space-y-2">
         <input 
