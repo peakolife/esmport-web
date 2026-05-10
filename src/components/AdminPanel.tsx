@@ -39,17 +39,17 @@ const BLOCK_TEMPLATES: Record<string, any> = {
   hero: {
     type: 'hero',
     content: {
-      title: 'TİCARETİN GÜCÜNÜ <span class="text-orange-500">ESM PORT</span> İLE KEŞFEDİN',
-      subtitle: 'HIZ, GÜVEN VE ÜSTÜN HİZMET',
-      description: 'Yeni nesil lojistik çözümleri.',
-      image: 'input_file_1.png'
+      title: 'BAŞLIK BURAYA <span class="text-orange-500">GELECEK</span>',
+      subtitle: 'ALT BAŞLIK',
+      description: 'Açıklama metni buraya gelecek.',
+      image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80'
     }
   },
   stats: {
     type: 'stats',
     content: [
-      { label: 'Sevkiyat', value: '10K+', icon: 'Truck' },
-      { label: 'Müşteri', value: '1K+', icon: 'Users' }
+      { label: 'Başarı', value: '100%', icon: 'Trophy' },
+      { label: 'Tecrübe', value: '10 Yıl', icon: 'Clock' }
     ]
   },
   services: {
@@ -69,7 +69,7 @@ const BLOCK_TEMPLATES: Record<string, any> = {
       title: 'Geleceği Taşıyoruz',
       description: 'Vizyon açıklaması buraya gelecek.',
       experienceYear: '20 YIL',
-      image: 'input_file_4.png'
+      image: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&q=80'
     }
   },
   businessCard: {
@@ -88,7 +88,7 @@ const BLOCK_TEMPLATES: Record<string, any> = {
       sectionTitle: 'GALERİ',
       sectionHeading: 'Görseller',
       images: [
-        { url: 'input_file_0.png', title: 'Görsel 1' }
+        { url: 'https://images.unsplash.com/photo-1519003722824-191d440bd502?auto=format&fit=crop&q=80', title: 'Görsel 1' }
       ]
     }
   },
@@ -100,6 +100,12 @@ const BLOCK_TEMPLATES: Record<string, any> = {
       phone: '+90 000 000 00 00',
       email: 'info@site.com',
       address: 'Adres bilgisi'
+    }
+  },
+  text: {
+    type: 'text',
+    content: {
+      text: '<h2>Yeni Metin Bölümü</h2><p>Buraya istediğiniz HTML veya metin içeriğini girebilirsiniz.</p>'
     }
   }
 };
@@ -117,6 +123,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
     if (onChange) onChange(content);
   }, [content, onChange]);
   const [activeTab, setActiveTab] = useState(defaultTab || 'general');
+  const [selectedPageId, setSelectedPageId] = useState(content?.pages?.[0]?.id || 'home');
+
+  // Safety: Ensure selectedPageId is valid if pages change
+  useEffect(() => {
+    if (content?.pages && !content.pages.find((p: any) => p.id === selectedPageId)) {
+      if (content.pages.length > 0) {
+        setSelectedPageId(content.pages[0].id);
+      }
+    }
+  }, [content?.pages, selectedPageId]);
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -148,26 +165,94 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
     localStorage.removeItem('admin_session');
   };
 
-  const addSection = (type: string) => {
+  const addSection = (type: string, pageId: string) => {
     const newContent = JSON.parse(JSON.stringify(content));
     const template = BLOCK_TEMPLATES[type];
     if (!template) return;
     
+    const pageIndex = newContent.pages.findIndex((p: any) => p.id === pageId);
+    if (pageIndex === -1) return;
+
     // Add unique ID
     const newBlock = {
       ...template,
       id: `b-${Date.now()}`
     };
     
-    newContent.pages[0].blocks.push(newBlock);
+    newContent.pages[pageIndex].blocks.push(newBlock);
+    setContent(newContent);
+    setEditingBlockId(newBlock.id);
+  };
+
+  const deleteSection = (blockId: string, pageId: string) => {
+    if (!window.confirm(`Bu bölümü silmek istediğinize emin misiniz?`)) return;
+    const newContent = JSON.parse(JSON.stringify(content));
+    const pageIndex = newContent.pages.findIndex((p: any) => p.id === pageId);
+    if (pageIndex === -1) return;
+    
+    newContent.pages[pageIndex].blocks = newContent.pages[pageIndex].blocks.filter((b: any) => b.id !== blockId);
+    setContent(newContent);
+    if (editingBlockId === blockId) setEditingBlockId(null);
+  };
+
+  const moveSection = (blockId: string, pageId: string, direction: 'up' | 'down') => {
+    const newContent = JSON.parse(JSON.stringify(content));
+    const pageIndex = newContent.pages.findIndex((p: any) => p.id === pageId);
+    if (pageIndex === -1) return;
+    
+    const blocks = newContent.pages[pageIndex].blocks;
+    const index = blocks.findIndex((b: any) => b.id === blockId);
+    if (index === -1) return;
+    
+    if (direction === 'up' && index > 0) {
+      [blocks[index], blocks[index - 1]] = [blocks[index - 1], blocks[index]];
+    } else if (direction === 'down' && index < blocks.length - 1) {
+      [blocks[index], blocks[index + 1]] = [blocks[index + 1], blocks[index]];
+    }
+    
     setContent(newContent);
   };
 
-  const deleteSection = (type: string) => {
-    if (!window.confirm(`${type.toUpperCase()} bölümünü silmek istediğinize emin misiniz?`)) return;
+  const addPage = () => {
+    const title = window.prompt("Sayfa Başlığı:");
+    if (!title) return;
+    const slug = "/" + title.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '');
+    
     const newContent = JSON.parse(JSON.stringify(content));
-    newContent.pages[0].blocks = newContent.pages[0].blocks.filter((b: any) => b.type !== type);
+    const newPage = {
+      id: `p-${Date.now()}`,
+      title,
+      slug,
+      blocks: [
+        { ...BLOCK_TEMPLATES.hero, id: `b-${Date.now()}-1` },
+        { ...BLOCK_TEMPLATES.contact, id: `b-${Date.now()}-2` }
+      ]
+    };
+    
+    newContent.pages.push(newPage);
     setContent(newContent);
+    setSelectedPageId(newPage.id);
+    setActiveTab('editor');
+  };
+
+  const deletePage = (pageId: string) => {
+    if (pageId === 'home') {
+      alert("Ana sayfa silinemez.");
+      return;
+    }
+    if (!window.confirm("Bu sayfayı ve içindeki tüm bölümleri silmek istediğinize emin misiniz?")) return;
+    
+    const newContent = JSON.parse(JSON.stringify(content));
+    newContent.pages = newContent.pages.filter((p: any) => p.id !== pageId);
+    
+    // Also remove from menu if exists
+    const pageSlug = content.pages.find((p: any) => p.id === pageId)?.slug;
+    if (pageSlug) {
+      newContent.menu = newContent.menu.filter((m: any) => m.path !== pageSlug);
+    }
+
+    setContent(newContent);
+    setSelectedPageId('home');
   };
 
   const handleSave = async () => {
@@ -319,17 +404,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside className="w-64 border-r border-slate-800 bg-slate-900/30 overflow-y-auto shrink-0 hidden lg:block">
-          <nav className="p-4 space-y-1">
-            <SidebarLink icon={<Settings />} label="Genel Ayarlar" active={activeTab === 'general'} onClick={() => setActiveTab('general')} />
-            <SidebarLink icon={<Layout />} label="Giriş Bölümü (Hero)" active={activeTab === 'hero'} onClick={() => setActiveTab('hero')} />
-            <SidebarLink icon={<Briefcase />} label="Hizmetlerimiz" active={activeTab === 'services'} onClick={() => setActiveTab('services')} />
-            <SidebarLink icon={<BarChart3 />} label="İstatistikler" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} />
-            <SidebarLink icon={<Award />} label="Vizyonumuz" active={activeTab === 'vision'} onClick={() => setActiveTab('vision')} />
-            <SidebarLink icon={<IdCard />} label="Kartvizit" active={activeTab === 'bizcard'} onClick={() => setActiveTab('bizcard')} />
-            <SidebarLink icon={<MenuIcon />} label="Menü Yönetimi" active={activeTab === 'menu'} onClick={() => setActiveTab('menu')} />
-            <SidebarLink icon={<LuImage />} label="Galeri" active={activeTab === 'gallery'} onClick={() => setActiveTab('gallery')} />
-            <SidebarLink icon={<ContactIcon />} label="İletişim" active={activeTab === 'contact'} onClick={() => setActiveTab('contact')} />
-          </nav>
+          <div className="p-4 border-b border-slate-800">
+            <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">SİTE YÖNETİMİ</h3>
+            <nav className="space-y-1">
+              <SidebarLink icon={<Settings />} label="Genel Ayarlar" active={activeTab === 'general'} onClick={() => setActiveTab('general')} />
+              <SidebarLink icon={<Layout />} label="Sayfa Yönetimi" active={activeTab === 'pages'} onClick={() => setActiveTab('pages')} />
+              <SidebarLink icon={<MenuIcon />} label="Menü Linkleri" active={activeTab === 'menu'} onClick={() => setActiveTab('menu')} />
+              <SidebarLink icon={<BarChart3 />} label="Tasarım & Renkler" active={activeTab === 'design'} onClick={() => setActiveTab('design')} />
+            </nav>
+          </div>
+          <div className="p-4">
+            <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">İÇERİK DÜZENLEYİCİ</h3>
+            <nav className="space-y-1">
+              <SidebarLink icon={<Eye />} label="Canlı Düzenleyici" active={activeTab === 'editor'} onClick={() => setActiveTab('editor')} />
+            </nav>
+          </div>
         </aside>
 
         {/* Content Area */}
@@ -379,34 +468,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                   <h2 className="text-xl font-bold">Genel Bilgiler</h2>
                 </div>
                 <div className="grid gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
-                  <InputField 
-                    label="Site Adı" 
-                    value={content.general.siteName} 
-                    onChange={(val) => updateNestedField(['general', 'siteName'], val)} 
-                  />
-                  <ImageUploadField 
-                    label="Site Logosu (URL veya Yükle)" 
-                    value={content.general.logoUrl} 
-                    onUpload={(e) => handleFileUpload(['general', 'logoUrl'], e)}
-                    onUrlChange={(val) => updateNestedField(['general', 'logoUrl'], val)}
-                    isUploading={isUploading}
-                  />
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-2 gap-6">
                     <InputField 
-                      label="SEO Başlık" 
+                      label="Site Adı" 
+                      value={content.general.siteName} 
+                      onChange={(val) => updateNestedField(['general', 'siteName'], val)} 
+                    />
+                    <InputField 
+                      label="SEO Başlığı" 
                       value={content.general.seo.title} 
                       onChange={(val) => updateNestedField(['general', 'seo', 'title'], val)} 
                     />
-                    <InputField 
-                      label="SEO Anahtar Kelimeler" 
-                      value={content.general.seo.keywords} 
-                      onChange={(val) => updateNestedField(['general', 'seo', 'keywords'], val)} 
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <ImageUploadField 
+                      label="Site Logosu" 
+                      value={content.general.logoUrl} 
+                      onUpload={(e) => handleFileUpload(['general', 'logoUrl'], e)}
+                      onUrlChange={(val) => updateNestedField(['general', 'logoUrl'], val)}
+                      isUploading={isUploading}
+                    />
+                    <ImageUploadField 
+                      label="Favicon" 
+                      value={content.general.faviconUrl} 
+                      onUpload={(e) => handleFileUpload(['general', 'faviconUrl'], e)}
+                      onUrlChange={(val) => updateNestedField(['general', 'faviconUrl'], val)}
+                      isUploading={isUploading}
                     />
                   </div>
                   <TextAreaField 
-                    label="SEO Açıklama" 
+                    label="SEO Açıklaması" 
                     value={content.general.seo.description} 
                     onChange={(val) => updateNestedField(['general', 'seo', 'description'], val)} 
+                  />
+                  <InputField 
+                    label="SEO Anahtar Kelimeler (Virgülle ayırın)" 
+                    value={content.general.seo.keywords} 
+                    onChange={(val) => updateNestedField(['general', 'seo', 'keywords'], val)} 
                   />
                   <div className="pt-4 border-t border-slate-800">
                     <h3 className="text-sm font-bold text-slate-400 mb-4 uppercase tracking-wider">Sosyal Medya Linkleri</h3>
@@ -433,13 +531,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                       />
                     </div>
                   </div>
-                  <ImageUploadField 
-                    label="Favicon URL (Tarayıcı İkonu)" 
-                    value={content.general.faviconUrl} 
-                    onUpload={(e) => handleFileUpload(['general', 'faviconUrl'], e)}
-                    onUrlChange={(val) => updateNestedField(['general', 'faviconUrl'], val)}
-                    isUploading={isUploading}
-                  />
                   
                   <div className="pt-8 border-t border-red-500/20 mt-4">
                     <div className="bg-red-500/5 p-6 rounded-2xl border border-red-500/20">
@@ -464,538 +555,260 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
               </section>
             )}
 
-            {/* Hero Section */}
-            {activeTab === 'hero' && (
+            {/* Page Management */}
+            {activeTab === 'pages' && (
               <section className="space-y-6">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Layout className="w-5 h-5 text-orange-500" />
-                    <h2 className="text-xl font-bold">Giriş Bölümü (Hero)</h2>
+                    <h2 className="text-xl font-bold">Sayfa Yönetimi</h2>
                   </div>
-                  {content.pages[0].blocks.find((b: any) => b.type === 'hero') ? (
-                    <button 
-                      onClick={() => deleteSection('hero')}
-                      className="flex items-center gap-2 text-xs bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" /> Bölümü Sil
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => addSection('hero')}
-                      className="flex items-center gap-2 text-xs bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
-                    >
-                      <Plus className="w-4 h-4" /> Bölümü Ekle
-                    </button>
-                  )}
+                  <button 
+                    onClick={addPage}
+                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                  >
+                    <Plus className="w-4 h-4" /> Yeni Sayfa Ekle
+                  </button>
                 </div>
-                {content.pages[0].blocks.find((b: any) => b.type === 'hero') ? (
-                  <div className="grid gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
-                    <InputField 
-                      label="Ana Başlık" 
-                      value={content.pages[0].blocks.find((b: any) => b.type === 'hero').content.title} 
-                      onChange={(val) => {
-                        const newPages = JSON.parse(JSON.stringify(content.pages));
-                        const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'hero');
-                        if (blockIndex !== -1) {
-                          newPages[0].blocks[blockIndex].content.title = val;
-                          setContent((prev: any) => ({...prev, pages: newPages}));
-                        }
-                      }} 
-                    />
-                    <TextAreaField 
-                      label="Alt Metin" 
-                      value={content.pages[0].blocks.find((b: any) => b.type === 'hero').content.subtitle} 
-                      onChange={(val) => {
-                        const newPages = JSON.parse(JSON.stringify(content.pages));
-                        const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'hero');
-                        if (blockIndex !== -1) {
-                          newPages[0].blocks[blockIndex].content.subtitle = val;
-                          setContent((prev: any) => ({...prev, pages: newPages}));
-                        }
-                      }} 
-                    />
-                    <ImageUploadField 
-                      label="Arka Plan Görseli" 
-                      value={content.pages[0].blocks.find((b: any) => b.type === 'hero').content.image} 
-                      onUpload={(e) => {
-                        const blockIndex = content.pages[0].blocks.findIndex((b: any) => b.type === 'hero');
-                        if (blockIndex !== -1) {
-                          handleFileUpload(['pages', '0', 'blocks', blockIndex.toString(), 'content', 'image'], e);
-                        }
-                      }}
-                      onUrlChange={(val) => {
-                        const newPages = JSON.parse(JSON.stringify(content.pages));
-                        const blockIndex = newPages[0].blocks.findIndex((b: any) => b.type === 'hero');
-                        if (blockIndex !== -1) {
-                          newPages[0].blocks[blockIndex].content.image = val;
-                          setContent((prev: any) => ({...prev, pages: newPages}));
-                        }
-                      }}
-                      isUploading={isUploading}
-                    />
-                  </div>
-                ) : (
-                  <div className="bg-slate-900/50 p-12 rounded-2xl border border-slate-800 border-dashed text-center">
-                    <p className="text-slate-400 text-sm mb-4">Giriş bölümü (Hero) şu anda sitede aktif değil.</p>
-                    <button 
-                      onClick={() => addSection('hero')}
-                      className="inline-flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20"
-                    >
-                      <Plus className="w-5 h-5" /> ŞİMDİ EKLE
-                    </button>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* Services */}
-            {activeTab === 'services' && (
-              <section className="space-y-6">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-orange-500" />
-                    <h2 className="text-xl font-bold">Hizmetlerimiz</h2>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {content.pages[0].blocks.find((b: any) => b.type === 'services') ? (
-                      <>
-                        <button 
-                          onClick={() => deleteSection('services')}
-                          className="flex items-center gap-2 text-xs bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" /> Bölümü Sil
-                        </button>
+                <div className="grid gap-4 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                  {content.pages.map((page: any) => (
+                    <div key={page.id} className="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800 group hover:border-orange-500/50 transition-all">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-slate-500 group-hover:text-orange-500 transition-colors">
+                          <Layout className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-white leading-tight">{page.title}</h4>
+                          <p className="text-xs text-slate-500 font-mono">{page.slug}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <button 
                           onClick={() => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'services');
-                            if (blockIndex === -1) return;
-                            
-                            if (!newContent.pages[0].blocks[blockIndex].content.items) {
-                              newContent.pages[0].blocks[blockIndex].content.items = [];
-                            }
-                            
-                            newContent.pages[0].blocks[blockIndex].content.items.push({
-                              title: 'Yeni Hizmet',
-                              desc: 'Hizmet açıklamasını buraya yazın.',
-                              icon: 'Truck',
-                              color: 'bg-orange-50 text-orange-600'
-                            });
-                            setContent(newContent);
+                            setSelectedPageId(page.id);
+                            setActiveTab('editor');
                           }}
-                          className="flex items-center gap-2 text-sm bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
+                          className="p-2 hover:bg-orange-600/10 hover:text-orange-500 rounded-lg transition-all"
+                          title="İçeriği Düzenle"
                         >
-                          <Plus className="w-4 h-4" /> Hizmet Ekle
+                          <Eye className="w-5 h-5" />
                         </button>
-                      </>
-                    ) : (
-                      <button 
-                        onClick={() => addSection('services')}
-                        className="flex items-center gap-2 text-xs bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
-                      >
-                        <Plus className="w-4 h-4" /> Bölümü Ekle
-                      </button>
-                    )}
-                  </div>
+                        {page.id !== 'home' && (
+                          <button 
+                            onClick={() => deletePage(page.id)}
+                            className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-all"
+                            title="Sayfayı Sil"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {content.pages[0].blocks.find((b: any) => b.type === 'services') ? (
-                  <div className="space-y-4">
-                    {(() => {
-                      const servicesBlock = content.pages[0].blocks.find((b: any) => b.type === 'services');
-                      return servicesBlock?.content?.items?.map((item: any, idx: number) => (
-                        <div key={idx} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-4">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-bold text-orange-500 uppercase">Hizmet #{idx + 1}</span>
-                            <button 
-                              onClick={() => {
-                                const newContent = JSON.parse(JSON.stringify(content));
-                                const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'services');
-                                if (blockIndex !== -1) {
-                                  newContent.pages[0].blocks[blockIndex].content.items.splice(idx, 1);
-                                  setContent(newContent);
-                                }
-                              }}
-                              className="text-red-500 hover:text-red-400 p-1"
-                              title="Hizmeti Sil"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <InputField 
-                            label="Hizmet Adı" 
-                            value={item.title} 
-                            onChange={(val) => {
-                              const newContent = JSON.parse(JSON.stringify(content));
-                              const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'services');
-                              if (blockIndex !== -1) {
-                                newContent.pages[0].blocks[blockIndex].content.items[idx].title = val;
-                                setContent(newContent);
-                              }
-                            }} 
-                          />
-                          <TextAreaField 
-                            label="Açıklama" 
-                            value={item.desc} 
-                            onChange={(val) => {
-                              const newContent = JSON.parse(JSON.stringify(content));
-                              const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'services');
-                              if (blockIndex !== -1) {
-                                newContent.pages[0].blocks[blockIndex].content.items[idx].desc = val;
-                                setContent(newContent);
-                              }
-                            }} 
+              </section>
+            )}
+
+            {/* Design & Colors */}
+            {activeTab === 'design' && (
+              <section className="space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="w-5 h-5 text-orange-500" />
+                  <h2 className="text-xl font-bold">Tasarım & Renkler</h2>
+                </div>
+                <div className="grid gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Marka Renkleri</h3>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-4 p-3 bg-slate-950 rounded-xl border border-slate-800">
+                          <span className="text-sm font-medium">Birincil Renk (Tema)</span>
+                          <input 
+                            type="color" 
+                            value={content.design.primaryColor} 
+                            onChange={(e) => updateNestedField(['design', 'primaryColor'], e.target.value)}
+                            className="w-10 h-10 rounded-lg bg-transparent border-0 cursor-pointer"
                           />
                         </div>
-                      ));
-                    })()}
+                        <div className="flex items-center justify-between gap-4 p-3 bg-slate-950 rounded-xl border border-slate-800">
+                          <span className="text-sm font-medium">Navigasyon Metin Rengi</span>
+                          <input 
+                            type="color" 
+                            value={content.design.menuColor} 
+                            onChange={(e) => updateNestedField(['design', 'menuColor'], e.target.value)}
+                            className="w-10 h-10 rounded-lg bg-transparent border-0 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Animasyon Ayarları</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
+                          <span className="text-sm">Kaydırma Animasyonları</span>
+                          <input 
+                            type="checkbox" 
+                            checked={content.design.animations.scrollAnimations} 
+                            onChange={(e) => updateNestedField(['design', 'animations', 'scrollAnimations'], e.target.checked)}
+                            className="w-5 h-5 accent-orange-600 rounded"
+                          />
+                        </div>
+                        <div className="space-y-2 pt-2">
+                          <div className="flex justify-between text-xs text-slate-500 font-bold uppercase">
+                            <span>Animasyon Hızı</span>
+                            <span>{content.design.animations.speed}s</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0.1" 
+                            max="2" 
+                            step="0.1"
+                            value={content.design.animations.speed} 
+                            onChange={(e) => updateNestedField(['design', 'animations', 'speed'], parseFloat(e.target.value))}
+                            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-600"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="bg-slate-900/50 p-12 rounded-2xl border border-slate-800 border-dashed text-center">
-                    <p className="text-slate-400 text-sm mb-4">Hizmetler bölümü şu anda sitede aktif değil.</p>
-                    <button 
-                      onClick={() => addSection('services')}
-                      className="inline-flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20"
-                    >
-                      <Plus className="w-5 h-5" /> ŞİMDİ EKLE
-                    </button>
-                  </div>
-                )}
+                </div>
               </section>
             )}
 
-            {/* Stats Management */}
-            {activeTab === 'stats' && (
+            {/* Universal Content Editor */}
+            {activeTab === 'editor' && (
               <section className="space-y-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-orange-500" />
-                    <h2 className="text-xl font-bold">Site İstatistikleri</h2>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {content.pages[0].blocks.find((b: any) => b.type === 'stats') ? (
-                      <>
-                        <button 
-                          onClick={() => deleteSection('stats')}
-                          className="flex items-center gap-2 text-xs bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" /> Bölümü Sil
-                        </button>
-                        <button 
-                          onClick={() => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'stats');
-                            if (blockIndex === -1) return;
-                            
-                            newContent.pages[0].blocks[blockIndex].content.push({
-                              label: 'Yeni Bilgi',
-                              value: '0',
-                              icon: 'Truck'
-                            });
-                            setContent(newContent);
-                          }}
-                          className="flex items-center gap-2 text-sm bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
-                        >
-                          <Plus className="w-4 h-4" /> İstatistik Ekle
-                        </button>
-                      </>
-                    ) : (
-                      <button 
-                        onClick={() => addSection('stats')}
-                        className="flex items-center gap-2 text-xs bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
-                      >
-                        <Plus className="w-4 h-4" /> Bölümü Ekle
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {content.pages[0].blocks.find((b: any) => b.type === 'stats') ? (
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {(() => {
-                      const statsBlock = content.pages[0].blocks.find((b: any) => b.type === 'stats');
-                      return statsBlock?.content?.map((stat: any, idx: number) => (
-                        <div key={idx} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-4">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-bold text-orange-500 uppercase">İstatistik #{idx + 1}</span>
-                            <button 
-                              onClick={() => {
-                                const newContent = JSON.parse(JSON.stringify(content));
-                                const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'stats');
-                                if (blockIndex !== -1) {
-                                  newContent.pages[0].blocks[blockIndex].content.splice(idx, 1);
-                                  setContent(newContent);
-                                }
-                              }}
-                              className="text-red-500 hover:text-red-400 p-1"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                {(() => {
+                  const selectedPage = content?.pages?.find((p: any) => p.id === selectedPageId) || content?.pages?.[0];
+                  
+                  if (!selectedPage) {
+                    return (
+                      <div className="bg-slate-900/50 p-10 rounded-3xl border border-slate-800 text-center">
+                        <Layout className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+                        <h3 className="text-lg font-bold">Sayfa bulunamadı</h3>
+                        <p className="text-slate-500 text-sm mb-6">Düzenlemek için bir sayfa seçin veya yeni bir sayfa oluşturun.</p>
+                        <button onClick={() => setActiveTab('pages')} className="text-orange-500 font-bold hover:underline">Sayfa Yönetimine Git</button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-orange-600 rounded-lg shadow-lg shadow-orange-600/20">
+                            <Eye className="w-5 h-5 text-white" />
                           </div>
-                          <InputField 
-                            label="Etiket" 
-                            value={stat.label} 
-                            onChange={(val) => {
-                              const newContent = JSON.parse(JSON.stringify(content));
-                              const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'stats');
-                              if (blockIndex !== -1) {
-                                newContent.pages[0].blocks[blockIndex].content[idx].label = val;
-                                setContent(newContent);
-                              }
-                            }} 
-                          />
-                          <InputField 
-                            label="Değer" 
-                            value={stat.value} 
-                            onChange={(val) => {
-                              const newContent = JSON.parse(JSON.stringify(content));
-                              const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'stats');
-                              if (blockIndex !== -1) {
-                                newContent.pages[0].blocks[blockIndex].content[idx].value = val;
-                                setContent(newContent);
-                              }
-                            }} 
-                          />
-                          <div className="space-y-2">
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">İkon (Lucide)</label>
-                            <select 
-                              value={stat.icon}
-                              onChange={(e) => {
-                                const newContent = JSON.parse(JSON.stringify(content));
-                                const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'stats');
-                                if (blockIndex !== -1) {
-                                  newContent.pages[0].blocks[blockIndex].content[idx].icon = e.target.value;
-                                  setContent(newContent);
-                                }
-                              }}
-                              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all text-sm"
-                            >
-                              <option value="Truck">Kamyon (Truck)</option>
-                              <option value="Users">Kullanıcılar (Users)</option>
-                              <option value="Trophy">Kupa (Trophy)</option>
-                              <option value="BarChart3">Grafik (BarChart3)</option>
-                              <option value="MapPin">Konum (MapPin)</option>
-                              <option value="ShieldCheck">Güvenlik (ShieldCheck)</option>
-                            </select>
+                          <div>
+                            <h2 className="text-xl font-bold leading-tight">Canlı Düzenleyici</h2>
+                            <p className="text-xs text-orange-500 font-bold uppercase tracking-wider">
+                              {selectedPage.title} SAYFASI
+                            </p>
                           </div>
                         </div>
-                      ));
-                    })()}
-                  </div>
-                ) : (
-                  <div className="bg-slate-900/50 p-12 rounded-2xl border border-slate-800 border-dashed text-center">
-                    <p className="text-slate-400 text-sm mb-4">İstatistikler bölümü şu anda sitede aktif değil.</p>
-                    <button 
-                      onClick={() => addSection('stats')}
-                      className="inline-flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20"
-                    >
-                      <Plus className="w-5 h-5" /> ŞİMDİ EKLE
-                    </button>
-                  </div>
-                )}
-              </section>
-            )}
+                        <div className="flex items-center gap-2">
+                          <select 
+                            value={selectedPageId}
+                            onChange={(e) => {
+                              setSelectedPageId(e.target.value);
+                              setEditingBlockId(null);
+                            }}
+                            className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                          >
+                            {content.pages.map((p: any) => (
+                              <option key={p.id} value={p.id}>{p.title}</option>
+                            ))}
+                          </select>
+                          <div className="relative group/add">
+                            <button className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all">
+                              <Plus className="w-4 h-4" /> Bölüm Ekle
+                            </button>
+                            <div className="absolute right-0 top-full mt-2 w-56 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl opacity-0 invisible group-hover/add:opacity-100 group-hover/add:visible transition-all z-50 p-2 grid gap-1">
+                              {Object.keys(BLOCK_TEMPLATES).map(type => (
+                                <button 
+                                  key={type}
+                                  onClick={() => addSection(type, selectedPageId)}
+                                  className="flex items-center gap-3 w-full p-3 hover:bg-slate-800 rounded-xl text-left transition-all group/item"
+                                >
+                                  <div className="w-8 h-8 bg-slate-950 rounded-lg flex items-center justify-center text-slate-500 group-hover/item:text-orange-500 transition-colors">
+                                    <Layout className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-xs font-bold uppercase tracking-tight">{type}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
-            {/* Vision Management */}
-            {activeTab === 'vision' && (
-              <section className="space-y-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-orange-500" />
-                    <h2 className="text-xl font-bold">Vizyon ve Deneyim</h2>
-                  </div>
-                  {content.pages[0].blocks.find((b: any) => b.type === 'vision') ? (
-                    <button 
-                      onClick={() => deleteSection('vision')}
-                      className="flex items-center gap-2 text-xs bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" /> Bölümü Sil
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => addSection('vision')}
-                      className="flex items-center gap-2 text-xs bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
-                    >
-                      <Plus className="w-4 h-4" /> Bölümü Ekle
-                    </button>
-                  )}
-                </div>
-                {(() => {
-                  const visionBlock = content.pages[0].blocks.find((b: any) => b.type === 'vision');
-                  if (!visionBlock) return (
-                    <div className="bg-slate-900/50 p-12 rounded-2xl border border-slate-800 border-dashed text-center">
-                      <p className="text-slate-400 text-sm mb-4">Vizyon bölümü şu anda sitede aktif değil.</p>
-                      <button 
-                        onClick={() => addSection('vision')}
-                        className="inline-flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20"
-                      >
-                        <Plus className="w-5 h-5" /> ŞİMDİ EKLE
-                      </button>
-                    </div>
-                  );
-                  const idx = content.pages[0].blocks.findIndex((b: any) => b.type === 'vision');
-                  
-                  return (
-                    <div className="grid gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
-                      <InputField 
-                        label="Üst Başlık" 
-                        value={visionBlock.content.sectionTitle} 
-                        onChange={(val) => {
-                          const newPages = JSON.parse(JSON.stringify(content.pages));
-                          newPages[0].blocks[idx].content.sectionTitle = val;
-                          setContent((prev: any) => ({...prev, pages: newPages}));
-                        }} 
-                      />
-                      <InputField 
-                        label="Ana Başlık" 
-                        value={visionBlock.content.title} 
-                        onChange={(val) => {
-                          const newPages = JSON.parse(JSON.stringify(content.pages));
-                          newPages[0].blocks[idx].content.title = val;
-                          setContent((prev: any) => ({...prev, pages: newPages}));
-                        }} 
-                      />
-                      <TextAreaField 
-                        label="Açıklama" 
-                        value={visionBlock.content.description} 
-                        onChange={(val) => {
-                          const newPages = JSON.parse(JSON.stringify(content.pages));
-                          newPages[0].blocks[idx].content.description = val;
-                          setContent((prev: any) => ({...prev, pages: newPages}));
-                        }} 
-                      />
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <InputField 
-                          label="Deneyim Yılı" 
-                          value={visionBlock.content.experienceYear} 
-                          onChange={(val) => {
-                            const newPages = JSON.parse(JSON.stringify(content.pages));
-                            newPages[0].blocks[idx].content.experienceYear = val;
-                            setContent((prev: any) => ({...prev, pages: newPages}));
-                          }} 
-                        />
-                        <ImageUploadField 
-                          label="Vizyon Görseli" 
-                          value={visionBlock.content.image} 
-                          onUpload={(e) => handleFileUpload(['pages', '0', 'blocks', idx.toString(), 'content', 'image'], e)}
-                          onUrlChange={(val) => {
-                            const newPages = JSON.parse(JSON.stringify(content.pages));
-                            newPages[0].blocks[idx].content.image = val;
-                            setContent((prev: any) => ({...prev, pages: newPages}));
-                          }}
-                          isUploading={isUploading}
-                        />
+                      <div className="space-y-4">
+                        {(selectedPage.blocks || []).map((block: any, index: number) => (
+                          <div 
+                            key={block.id} 
+                            className={`bg-slate-900/50 rounded-2xl border transition-all ${editingBlockId === block.id ? 'border-orange-500 shadow-2xl shadow-orange-500/10 ring-1 ring-orange-500/50' : 'border-slate-800 hover:border-slate-700'}`}
+                          >
+                            <div className="flex items-center justify-between p-4 border-b border-white/5">
+                              <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${editingBlockId === block.id ? 'bg-orange-500 text-white' : 'bg-slate-950 text-slate-500'}`}>
+                                  <Layout className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-black uppercase tracking-widest">{block.type}</h4>
+                                  <p className="text-[10px] text-slate-500 font-mono">#{block.id}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => moveSection(block.id, selectedPageId, 'up')} className="p-2 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-all"><ChevronDown className="w-4 h-4 rotate-180" /></button>
+                                <button onClick={() => moveSection(block.id, selectedPageId, 'down')} className="p-2 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-all"><ChevronDown className="w-4 h-4" /></button>
+                                <div className="w-px h-4 bg-slate-800 mx-1" />
+                                <button 
+                                  onClick={() => setEditingBlockId(editingBlockId === block.id ? null : block.id)}
+                                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${editingBlockId === block.id ? 'bg-orange-600 text-white' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}
+                                >
+                                  {editingBlockId === block.id ? 'Kapat' : 'Düzenle'}
+                                </button>
+                                <button 
+                                  onClick={() => deleteSection(block.id, selectedPageId)}
+                                  className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg text-slate-500 transition-all font-bold"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <AnimatePresence>
+                              {editingBlockId === block.id && (
+                                <motion.div 
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-6 pt-2 bg-slate-950/30">
+                                    <BlockEditor 
+                                      block={block} 
+                                      pageId={selectedPageId}
+                                      content={content}
+                                      setContent={setContent}
+                                      handleFileUpload={handleFileUpload}
+                                      isUploading={isUploading}
+                                    />
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        ))}
+                        
+                        {(selectedPage.blocks || []).length === 0 && (
+                          <div className="bg-slate-900/50 p-20 rounded-3xl border border-slate-800 border-dashed text-center">
+                            <Layout className="w-16 h-16 text-slate-800 mx-auto mb-6" />
+                            <h3 className="text-xl font-bold mb-2">Henüz Bölüm Yok</h3>
+                            <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8">Bu sayfada henüz hiç içerik bölümü yok. Sağ üstteki butonu kullanarak bir bölüm ekleyebilirsiniz.</p>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  );
-                })()}
-              </section>
-            )}
-
-            {/* Business Card Management */}
-            {activeTab === 'bizcard' && (
-              <section className="space-y-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <IdCard className="w-5 h-5 text-orange-500" />
-                    <h2 className="text-xl font-bold">Dijital Kartvizit Ayarları</h2>
-                  </div>
-                  {content.pages[0].blocks.find((b: any) => b.type === 'businessCard') ? (
-                    <button 
-                      onClick={() => deleteSection('businessCard')}
-                      className="flex items-center gap-2 text-xs bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" /> Bölümü Sil
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => addSection('businessCard')}
-                      className="flex items-center gap-2 text-xs bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
-                    >
-                      <Plus className="w-4 h-4" /> Bölümü Ekle
-                    </button>
-                  )}
-                </div>
-                {(() => {
-                  const bizBlock = content.pages[0].blocks.find((b: any) => b.type === 'businessCard');
-                  if (!bizBlock) return (
-                    <div className="bg-slate-900/50 p-12 rounded-2xl border border-slate-800 border-dashed text-center">
-                      <p className="text-slate-400 text-sm mb-4">Dijital kartvizit bölümü şu anda sitede aktif değil.</p>
-                      <button 
-                        onClick={() => addSection('businessCard')}
-                        className="inline-flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20"
-                      >
-                        <Plus className="w-5 h-5" /> ŞİMDİ EKLE
-                      </button>
-                    </div>
-                  );
-                  const idx = content.pages[0].blocks.findIndex((b: any) => b.type === 'businessCard');
-                  
-                  return (
-                    <div className="grid gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <InputField 
-                          label="Ad Soyad" 
-                          value={bizBlock.content.fullName} 
-                          onChange={(val) => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'businessCard');
-                            if (blockIndex !== -1) {
-                              newContent.pages[0].blocks[blockIndex].content.fullName = val;
-                              setContent(newContent);
-                            }
-                          }} 
-                        />
-                        <InputField 
-                          label="Pozisyon / Ünvan" 
-                          value={bizBlock.content.position} 
-                          onChange={(val) => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'businessCard');
-                            if (blockIndex !== -1) {
-                              newContent.pages[0].blocks[blockIndex].content.position = val;
-                              setContent(newContent);
-                            }
-                          }} 
-                        />
-                      </div>
-                      <TextAreaField 
-                        label="Kısa Açıklama" 
-                        value={bizBlock.content.description} 
-                        onChange={(val) => {
-                          const newContent = JSON.parse(JSON.stringify(content));
-                          const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'businessCard');
-                          if (blockIndex !== -1) {
-                            newContent.pages[0].blocks[blockIndex].content.description = val;
-                            setContent(newContent);
-                          }
-                        }} 
-                      />
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <InputField 
-                          label="Bölüm Üst Başlığı" 
-                          value={bizBlock.content.sectionTitle} 
-                          onChange={(val) => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'businessCard');
-                            if (blockIndex !== -1) {
-                              newContent.pages[0].blocks[blockIndex].content.sectionTitle = val;
-                              setContent(newContent);
-                            }
-                          }} 
-                        />
-                        <InputField 
-                          label="Bölüm Ana Başlığı" 
-                          value={bizBlock.content.sectionHeading} 
-                          onChange={(val) => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'businessCard');
-                            if (blockIndex !== -1) {
-                              newContent.pages[0].blocks[blockIndex].content.sectionHeading = val;
-                              setContent(newContent);
-                            }
-                          }} 
-                        />
-                      </div>
-                    </div>
+                    </>
                   );
                 })()}
               </section>
@@ -1007,82 +820,78 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <MenuIcon className="w-5 h-5 text-orange-500" />
-                    <h2 className="text-xl font-bold">Menü Yönetimi</h2>
+                    <h2 className="text-xl font-bold">Menü Linkleri</h2>
                   </div>
                   <button 
                     onClick={() => {
                       const newContent = JSON.parse(JSON.stringify(content));
-                      const maxId = newContent.menu.length > 0 
-                        ? Math.max(...newContent.menu.map((m: any) => parseInt(m.id) || 0)) 
-                        : 0;
-                      const nextId = (maxId + 1).toString();
-                      
-                      newContent.menu.push({
-                        id: nextId,
-                        label: 'Yeni Menü',
-                        path: '#',
-                        order: newContent.menu.length
-                      });
+                      const maxId = newContent.menu.length > 0 ? Math.max(...newContent.menu.map((m: any) => parseInt(m.id) || 0)) : 0;
+                      newContent.menu.push({ id: (maxId + 1).toString(), label: 'Yeni Link', path: '/', order: newContent.menu.length });
                       setContent(newContent);
                     }}
-                    className="flex items-center gap-2 text-sm bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
+                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all"
                   >
-                    <Plus className="w-4 h-4" /> Menü Ekle
+                    <Plus className="w-4 h-4" /> Yeni Link Ekle
                   </button>
                 </div>
                 <div className="space-y-4">
-                  {[...content.menu].sort((a, b) => a.order - b.order).map((item: any, idx: number) => (
-                    <div key={item.id} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-orange-500 uppercase">Menü Öğesi #{idx + 1}</span>
-                        <button 
-                          onClick={() => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            newContent.menu = newContent.menu.filter((m: any) => m.id !== item.id);
-                            setContent(newContent);
-                          }}
-                          className="text-red-500 hover:text-red-400 p-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <InputField 
-                          label="Etiket" 
-                          value={item.label} 
-                          onChange={(val) => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const menuIdx = newContent.menu.findIndex((m: any) => m.id === item.id);
-                            if (menuIdx !== -1) {
-                              newContent.menu[menuIdx].label = val;
-                              setContent(newContent);
-                            }
-                          }} 
-                        />
-                        <InputField 
-                          label="Link (Path)" 
-                          value={item.path} 
-                          onChange={(val) => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const menuIdx = newContent.menu.findIndex((m: any) => m.id === item.id);
-                            if (menuIdx !== -1) {
-                              newContent.menu[menuIdx].path = val;
-                              setContent(newContent);
-                            }
-                          }} 
-                        />
+                  {content.menu.sort((a,b) => a.order - b.order).map((item: any) => (
+                    <div key={item.id} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-4 relative group">
+                      <button 
+                        onClick={() => {
+                          const newContent = JSON.parse(JSON.stringify(content));
+                          newContent.menu = newContent.menu.filter((m: any) => m.id !== item.id);
+                          setContent(newContent);
+                        }}
+                        className="absolute top-4 right-4 text-slate-600 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <InputField label="Menü Yazısı" value={item.label} onChange={(val) => {
+                          const newContent = JSON.parse(JSON.stringify(content));
+                          const i = newContent.menu.findIndex((m: any) => m.id === item.id);
+                          newContent.menu[i].label = val;
+                          setContent(newContent);
+                        }} />
                         <div className="space-y-2">
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Sıra</label>
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider text-left">Link / Sayfa</label>
+                          <select 
+                            value={item.path}
+                            onChange={(e) => {
+                              const newContent = JSON.parse(JSON.stringify(content));
+                              const i = newContent.menu.findIndex((m: any) => m.id === item.id);
+                              newContent.menu[i].path = e.target.value;
+                              setContent(newContent);
+                            }}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all text-sm"
+                          >
+                            <optgroup label="Sistem Sayfaları">
+                              {content.pages.map((p: any) => <option key={p.id} value={p.slug === '/' ? '/' : '#/' + p.slug.replace(/^\//, '')}>{p.title} ({p.slug})</option>)}
+                            </optgroup>
+                            <optgroup label="Bölüm Çapaları (Anchor)">
+                              <option value="#hero">Giriş (Hero)</option>
+                              <option value="#services">Hizmetler</option>
+                              <option value="#stats">İstatistikler</option>
+                              <option value="#vision">Vizyon</option>
+                              <option value="#gallery">Galeri</option>
+                              <option value="#contact">İletişim</option>
+                            </optgroup>
+                            <optgroup label="Özel Link">
+                              <option value={item.path}>{item.path}</option>
+                            </optgroup>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider text-left">Sıralama</label>
                           <input 
-                            type="number" 
+                            type="number"
                             value={item.order}
                             onChange={(e) => {
                               const newContent = JSON.parse(JSON.stringify(content));
-                              const menuIdx = newContent.menu.findIndex((m: any) => m.id === item.id);
-                              if (menuIdx !== -1) {
-                                newContent.menu[menuIdx].order = parseInt(e.target.value) || 0;
-                                setContent(newContent);
-                              }
+                              const i = newContent.menu.findIndex((m: any) => m.id === item.id);
+                              newContent.menu[i].order = parseInt(e.target.value) || 0;
+                              setContent(newContent);
                             }}
                             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all text-sm"
                           />
@@ -1093,229 +902,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                 </div>
               </section>
             )}
-
-            {/* Gallery */}
-            {activeTab === 'gallery' && (
-              <section className="space-y-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <LuImage className="w-5 h-5 text-orange-500" />
-                    <h2 className="text-xl font-bold">Galeri Görselleri</h2>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {content.pages[0].blocks.find((b: any) => b.type === 'gallery') ? (
-                      <>
-                        <button 
-                          onClick={() => deleteSection('gallery')}
-                          className="flex items-center gap-2 text-xs bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" /> Bölümü Sil
-                        </button>
-                        <button 
-                          onClick={() => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'gallery');
-                            if (blockIndex !== -1) {
-                              newContent.pages[0].blocks[blockIndex].content.images.push({
-                                url: 'input_file_0.png',
-                                title: 'Yeni Görsel'
-                              });
-                              setContent(newContent);
-                            }
-                          }}
-                          className="flex items-center gap-2 text-sm bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
-                        >
-                          <Plus className="w-4 h-4" /> Görsel Ekle
-                        </button>
-                      </>
-                    ) : (
-                      <button 
-                        onClick={() => addSection('gallery')}
-                        className="flex items-center gap-2 text-xs bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
-                      >
-                        <Plus className="w-4 h-4" /> Bölümü Ekle
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {content.pages[0].blocks.find((b: any) => b.type === 'gallery') ? (
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {(() => {
-                      const galleryBlock = content.pages[0].blocks.find((b: any) => b.type === 'gallery');
-                      return galleryBlock?.content?.images?.map((img: any, idx: number) => (
-                        <div key={idx} className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 space-y-4">
-                          <div className="relative aspect-video rounded-lg overflow-hidden group">
-                            <img src={img.url} alt="" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                              <label className="cursor-pointer bg-white text-slate-950 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-orange-500 hover:text-white transition-all flex items-center gap-2">
-                                <Upload className="w-3.5 h-3.5" />
-                                Değiştir
-                               <input 
-                                  type="file" 
-                                  className="hidden" 
-                                  onChange={(e) => {
-                                    const blockIndex = content.pages[0].blocks.findIndex((b: any) => b.type === 'gallery');
-                                    if (blockIndex !== -1) {
-                                      handleFileUpload(['pages', '0', 'blocks', blockIndex.toString(), 'content', 'images', idx.toString(), 'url'], e);
-                                    }
-                                  }}
-                                />
-                              </label>
-                              <button 
-                                onClick={() => {
-                                  const newContent = JSON.parse(JSON.stringify(content));
-                                  const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'gallery');
-                                  if (blockIndex !== -1) {
-                                    newContent.pages[0].blocks[blockIndex].content.images.splice(idx, 1);
-                                    setContent(newContent);
-                                  }
-                                }}
-                                className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                          <InputField 
-                            label="Görsel Başlığı" 
-                            value={img.title} 
-                            onChange={(val) => {
-                              const newContent = JSON.parse(JSON.stringify(content));
-                              const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'gallery');
-                              if (blockIndex !== -1) {
-                                newContent.pages[0].blocks[blockIndex].content.images[idx].title = val;
-                                setContent(newContent);
-                              }
-                            }}
-                          />
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                ) : (
-                  <div className="bg-slate-900/50 p-12 rounded-2xl border border-slate-800 border-dashed text-center">
-                    <p className="text-slate-400 text-sm mb-4">Galeri bölümü şu anda sitede aktif değil.</p>
-                    <button 
-                      onClick={() => addSection('gallery')}
-                      className="inline-flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20"
-                    >
-                      <Plus className="w-5 h-5" /> ŞİMDİ EKLE
-                    </button>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* Contact */}
-            {activeTab === 'contact' && (() => {
-              const contactBlock = content.pages[0].blocks.find((b: any) => b.type === 'contact');
-              
-              return (
-                <section className="space-y-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <ContactIcon className="w-5 h-5 text-orange-500" />
-                      <h2 className="text-xl font-bold">İletişim Bilgileri</h2>
-                    </div>
-                    {contactBlock ? (
-                      <button 
-                        onClick={() => deleteSection('contact')}
-                        className="flex items-center gap-2 text-xs bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                      >
-                        <Trash2 className="w-4 h-4" /> Bölümü Sil
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => addSection('contact')}
-                        className="flex items-center gap-2 text-xs bg-orange-600/10 text-orange-500 border border-orange-500/20 px-3 py-1.5 rounded-lg hover:bg-orange-600 hover:text-white transition-all"
-                      >
-                        <Plus className="w-4 h-4" /> Bölümü Ekle
-                      </button>
-                    )}
-                  </div>
-                  {contactBlock ? (
-                    <div className="grid gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <InputField 
-                          label="Telefon" 
-                          value={contactBlock.content.phone || ''} 
-                          onChange={(val) => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'contact');
-                            if (blockIndex !== -1) {
-                              newContent.pages[0].blocks[blockIndex].content.phone = val;
-                              setContent(newContent);
-                            }
-                          }} 
-                        />
-                        <InputField 
-                          label="E-posta" 
-                          value={contactBlock.content.email || ''} 
-                          onChange={(val) => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'contact');
-                            if (blockIndex !== -1) {
-                              newContent.pages[0].blocks[blockIndex].content.email = val;
-                              setContent(newContent);
-                            }
-                          }} 
-                        />
-                      </div>
-                      <TextAreaField 
-                        label="Adres" 
-                        value={contactBlock.content.address || ''} 
-                        onChange={(val) => {
-                          const newContent = JSON.parse(JSON.stringify(content));
-                          const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'contact');
-                          if (blockIndex !== -1) {
-                            newContent.pages[0].blocks[blockIndex].content.address = val;
-                            setContent(newContent);
-                          }
-                        }} 
-                      />
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <InputField 
-                          label="Instagram" 
-                          value={contactBlock.content.socials?.instagram || ''} 
-                          onChange={(val) => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'contact');
-                            if (blockIndex !== -1) {
-                              if (!newContent.pages[0].blocks[blockIndex].content.socials) newContent.pages[0].blocks[blockIndex].content.socials = {};
-                              newContent.pages[0].blocks[blockIndex].content.socials.instagram = val;
-                              setContent(newContent);
-                            }
-                          }} 
-                        />
-                        <InputField 
-                          label="LinkedIn" 
-                          value={contactBlock.content.socials?.linkedin || ''} 
-                          onChange={(val) => {
-                            const newContent = JSON.parse(JSON.stringify(content));
-                            const blockIndex = newContent.pages[0].blocks.findIndex((b: any) => b.type === 'contact');
-                            if (blockIndex !== -1) {
-                              if (!newContent.pages[0].blocks[blockIndex].content.socials) newContent.pages[0].blocks[blockIndex].content.socials = {};
-                              newContent.pages[0].blocks[blockIndex].content.socials.linkedin = val;
-                              setContent(newContent);
-                            }
-                          }} 
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-slate-900/50 p-12 rounded-2xl border border-slate-800 border-dashed text-center">
-                      <p className="text-slate-400 text-sm mb-4">İletişim bölümü şu anda sitede aktif değil.</p>
-                      <button 
-                        onClick={() => addSection('contact')}
-                        className="inline-flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20"
-                      >
-                        <Plus className="w-5 h-5" /> ŞİMDİ EKLE
-                      </button>
-                    </div>
-                  )}
-                </section>
-              );
-            })()}
             {/* Form Footer Save Button */}
             <div className="pt-10 border-t border-slate-800 mt-10">
               <button 
@@ -1338,6 +924,225 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
 };
 
 /* Helper Components */
+
+const BlockEditor = ({ block, pageId, content, setContent, handleFileUpload, isUploading }: any) => {
+  const updateBlockContent = (newBlockContent: any) => {
+    const newContent = JSON.parse(JSON.stringify(content));
+    const pageIndex = newContent.pages.findIndex((p: any) => p.id === pageId);
+    if (pageIndex === -1) return;
+    const blockIndex = newContent.pages[pageIndex].blocks.findIndex((b: any) => b.id === block.id);
+    if (blockIndex === -1) return;
+    
+    newContent.pages[pageIndex].blocks[blockIndex].content = newBlockContent;
+    setContent(newContent);
+  };
+
+  const getUploadPath = (field: string) => {
+    const pageIndex = content.pages.findIndex((p: any) => p.id === pageId);
+    const blockIndex = content.pages[pageIndex].blocks.findIndex((b: any) => b.id === block.id);
+    return ['pages', pageIndex.toString(), 'blocks', blockIndex.toString(), 'content', field];
+  };
+
+  switch (block.type) {
+    case 'hero':
+      return (
+        <div className="space-y-4">
+          <InputField label="Ana Başlık (HTML destekli)" value={block.content.title} onChange={(val) => updateBlockContent({ ...block.content, title: val })} />
+          <InputField label="Üst Başlık (Subtitle)" value={block.content.subtitle} onChange={(val) => updateBlockContent({ ...block.content, subtitle: val })} />
+          <TextAreaField label="Açıklama" value={block.content.description} onChange={(val) => updateBlockContent({ ...block.content, description: val })} />
+          <ImageUploadField 
+            label="Arka Plan Görseli" 
+            value={block.content.image} 
+            onUpload={(e) => handleFileUpload(getUploadPath('image'), e)}
+            onUrlChange={(val) => updateBlockContent({ ...block.content, image: val })}
+            isUploading={isUploading}
+          />
+        </div>
+      );
+    case 'stats':
+      return (
+        <div className="grid sm:grid-cols-2 gap-4">
+          {block.content.map((item: any, idx: number) => (
+            <div key={idx} className="p-4 bg-slate-900 rounded-xl space-y-3 relative group">
+              <button 
+                onClick={() => {
+                  const newList = [...block.content];
+                  newList.splice(idx, 1);
+                  updateBlockContent(newList);
+                }}
+                className="absolute top-2 right-2 p-1 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <InputField label="Etiket" value={item.label} onChange={(val) => {
+                const newList = [...block.content];
+                newList[idx].label = val;
+                updateBlockContent(newList);
+              }} />
+              <InputField label="Değer" value={item.value} onChange={(val) => {
+                const newList = [...block.content];
+                newList[idx].value = val;
+                updateBlockContent(newList);
+              }} />
+            </div>
+          ))}
+          <button 
+            onClick={() => updateBlockContent([...block.content, { label: 'Yeni', value: '0', icon: 'Truck' }])}
+            className="p-4 border-2 border-dashed border-slate-800 rounded-xl hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+          >
+            <Plus className="w-4 h-4" /> İstatistik Ekle
+          </button>
+        </div>
+      );
+    case 'services':
+      return (
+        <div className="space-y-6">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <InputField label="Bölüm Başlığı" value={block.content.sectionTitle} onChange={(val) => updateBlockContent({ ...block.content, sectionTitle: val })} />
+            <InputField label="Alt Başlık" value={block.content.sectionHeading} onChange={(val) => updateBlockContent({ ...block.content, sectionHeading: val })} />
+          </div>
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2 border-l-2 border-orange-500">Hizmet Listesi</h4>
+            <div className="grid gap-4">
+              {block.content.items.map((item: any, idx: number) => (
+                <div key={idx} className="p-4 bg-slate-900 rounded-xl space-y-4 relative group">
+                  <button 
+                    onClick={() => {
+                      const newList = [...block.content.items];
+                      newList.splice(idx, 1);
+                      updateBlockContent({ ...block.content, items: newList });
+                    }}
+                    className="absolute top-4 right-4 p-1 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <InputField label="Hizmet Adı" value={item.title} onChange={(val) => {
+                    const newList = [...block.content.items];
+                    newList[idx].title = val;
+                    updateBlockContent({ ...block.content, items: newList });
+                  }} />
+                  <TextAreaField label="Açıklama" value={item.desc} onChange={(val) => {
+                    const newList = [...block.content.items];
+                    newList[idx].desc = val;
+                    updateBlockContent({ ...block.content, items: newList });
+                  }} />
+                </div>
+              ))}
+              <button 
+                onClick={() => updateBlockContent({ 
+                  ...block.content, 
+                  items: [...block.content.items, { title: 'Yeni Hizmet', desc: 'Açıklama', icon: 'Truck', color: 'bg-orange-50 text-orange-600' }] 
+                })}
+                className="p-4 border-2 border-dashed border-slate-800 rounded-xl hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+              >
+                <Plus className="w-4 h-4" /> Yeni Hizmet Ekle
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    case 'vision':
+      return (
+         <div className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <InputField label="Bölüm Başlığı" value={block.content.sectionTitle} onChange={(val) => updateBlockContent({ ...block.content, sectionTitle: val })} />
+            <InputField label="Ana Başlık" value={block.content.title} onChange={(val) => updateBlockContent({ ...block.content, title: val })} />
+          </div>
+          <TextAreaField label="Açıklama" value={block.content.description} onChange={(val) => updateBlockContent({ ...block.content, description: val })} />
+          <div className="grid md:grid-cols-2 gap-4">
+            <InputField label="Deneyim Metni" value={block.content.experienceYear} onChange={(val) => updateBlockContent({ ...block.content, experienceYear: val })} />
+            <ImageUploadField 
+              label="Vizyon Görseli" 
+              value={block.content.image} 
+              onUpload={(e) => handleFileUpload(getUploadPath('image'), e)}
+              onUrlChange={(val) => updateBlockContent({ ...block.content, image: val })}
+              isUploading={isUploading}
+            />
+          </div>
+        </div>
+      );
+    case 'gallery':
+      return (
+        <div className="space-y-6">
+           <div className="grid sm:grid-cols-2 gap-4">
+            <InputField label="Bölüm Başlığı" value={block.content.sectionTitle} onChange={(val) => updateBlockContent({ ...block.content, sectionTitle: val })} />
+            <InputField label="Alt Başlık" value={block.content.sectionHeading} onChange={(val) => updateBlockContent({ ...block.content, sectionHeading: val })} />
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {block.content.images.map((img: any, idx: number) => (
+              <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden bg-slate-900 border border-slate-800">
+                <img src={img.url} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center p-4 gap-2">
+                  <label className="cursor-pointer bg-white text-slate-950 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-500 hover:text-white transition-all flex items-center gap-2">
+                    <Upload className="w-3 h-3" /> Değiştir
+                    <input type="file" className="hidden" onChange={(e) => handleFileUpload([...getUploadPath('images'), idx.toString(), 'url'], e)} />
+                  </label>
+                  <button 
+                    onClick={() => {
+                      const newList = [...block.content.images];
+                      newList.splice(idx, 1);
+                      updateBlockContent({ ...block.content, images: newList });
+                    }}
+                    className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white p-2 rounded-lg transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button 
+              onClick={() => updateBlockContent({ 
+                ...block.content, 
+                images: [...block.content.images, { url: 'https://images.unsplash.com/photo-1519003722824-191d440bd502?auto=format&fit=crop&q=80', title: 'Yeni' }] 
+              })}
+              className="aspect-square border-2 border-dashed border-slate-800 rounded-xl hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+            >
+              <Plus className="w-4 h-4" /> Görsel Ekle
+            </button>
+          </div>
+        </div>
+      );
+    case 'businessCard':
+      return (
+        <div className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <InputField label="Ad Soyad" value={block.content.fullName} onChange={(val) => updateBlockContent({ ...block.content, fullName: val })} />
+            <InputField label="Pozisyon" value={block.content.position} onChange={(val) => updateBlockContent({ ...block.content, position: val })} />
+          </div>
+          <TextAreaField label="Açıklama" value={block.content.description} onChange={(val) => updateBlockContent({ ...block.content, description: val })} />
+          <div className="grid md:grid-cols-2 gap-4">
+            <InputField label="Bölüm Başlığı" value={block.content.sectionTitle} onChange={(val) => updateBlockContent({ ...block.content, sectionTitle: val })} />
+            <InputField label="Alt Başlık" value={block.content.sectionHeading} onChange={(val) => updateBlockContent({ ...block.content, sectionHeading: val })} />
+          </div>
+        </div>
+      );
+    case 'contact':
+      return (
+        <div className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <InputField label="Telefon" value={block.content.phone} onChange={(val) => updateBlockContent({ ...block.content, phone: val })} />
+            <InputField label="E-Posta" value={block.content.email} onChange={(val) => updateBlockContent({ ...block.content, email: val })} />
+          </div>
+          <TextAreaField label="Adres" value={block.content.address} onChange={(val) => updateBlockContent({ ...block.content, address: val })} />
+          <div className="grid md:grid-cols-2 gap-4">
+             <InputField label="Üst Başlık" value={block.content.sectionHeading} onChange={(val) => updateBlockContent({ ...block.content, sectionHeading: val })} />
+             <InputField label="Açıklama" value={block.content.sectionDescription} onChange={(val) => updateBlockContent({ ...block.content, sectionDescription: val })} />
+          </div>
+        </div>
+      );
+    case 'text':
+      return (
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500 leading-relaxed bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <strong>İpucu:</strong> HTML etiketleri kullanarak (örneğin <code>&lt;h2&gt;</code>, <code>&lt;b&gt;</code>, <code>&lt;p&gt;</code>) metninizi zenginleştirebilirsiniz.
+          </p>
+          <TextAreaField label="HTML İçeriği" value={block.content.text} onChange={(val) => updateBlockContent({ ...block.content, text: val })} />
+        </div>
+      );
+    default:
+      return <div className="p-4 bg-red-500/10 text-red-500 rounded-xl text-xs font-bold ring-1 ring-red-500/20">Bu bölüm tipi için düzenleyici henüz hazır değil. ({block.type})</div>;
+  }
+};
 
 const SidebarLink = ({ icon, label, active, onClick }: { icon: any, label: string, active: boolean, onClick: () => void }) => (
   <button 

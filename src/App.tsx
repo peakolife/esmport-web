@@ -570,6 +570,10 @@ export default function App() {
   const [recordId, setRecordId] = useState<any>(null);
   const { scrollYProgress } = useScroll();
 
+  const normalizedPath = currentPath.startsWith('#') ? currentPath.substring(1) : currentPath;
+  const activePage = content.pages.find(p => p.slug === normalizedPath || p.slug === '/' + normalizedPath || (p.slug === '/' && (normalizedPath === '' || normalizedPath === '/')))
+    || content.pages[0];
+
   useEffect(() => {
     const checkLogin = () => {
       setIsAdminLoggedIn(localStorage.getItem('admin_session') === 'true');
@@ -621,7 +625,10 @@ export default function App() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ['home', 'services', 'vision', 'gallery', 'contact'];
+      // Find all blocks on the current page to track
+      const blocks = activePage?.blocks || [];
+      const sections = blocks.map(b => b.type);
+      
       for (const section of sections) {
         const element = document.getElementById(section);
         if (element) {
@@ -635,7 +642,7 @@ export default function App() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [activePage]);
 
   const openAdmin = (tab = 'general') => {
     setAdminTab(tab);
@@ -813,11 +820,6 @@ export default function App() {
       </div>
     );
   }
-
-  const activePage = content.pages.find(p => (p.slug || p.id) === currentPath) 
-    || (currentPath.startsWith('#') ? content.pages.find(p => (p.slug || p.id) === '/') : null)
-    || content.pages.find(p => (p.slug || p.id) === '/' + currentPath.replace('#', ''))
-    || content.pages[0];
 
   const renderBlock = (block: Block) => {
     const isEnabled = content.design.animations.scrollAnimations;
