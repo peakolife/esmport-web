@@ -24,6 +24,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { AdminPanel } from './components/AdminPanel';
 
 import { getSupabase } from './lib/supabase';
 
@@ -85,7 +86,7 @@ const INITIAL_CONTENT: SiteContent = {
   general: {
     siteName: "ESM PORT",
     logoUrl: "",
-    faviconUrl: "",
+    faviconUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=esm&backgroundColor=ea580c",
     seo: {
       title: "ESM PORT | Lojistik ve Taşımacılık",
       description: "Profesyonel lojistik ve konteyner taşımacılığı.",
@@ -292,9 +293,9 @@ const Stats = ({ stats, isEnabled, speed }: { stats: any[], isEnabled: boolean, 
   );
 };
 
-const Services = ({ services, isEnabled, speed }: { services: any, isEnabled: boolean, speed: number }) => {
+const Services = ({ services, isEnabled, speed, id }: { services: any, isEnabled: boolean, speed: number, id?: string }) => {
   return (
-    <section id="services" className="py-20 md:py-32 bg-white overflow-hidden scroll-mt-20">
+    <section id={id || "services"} className="py-20 md:py-32 bg-white overflow-hidden scroll-mt-20">
       <div className="container mx-auto px-6">
         <motion.div 
           initial={isEnabled ? { opacity: 0, y: 30 } : {}}
@@ -329,8 +330,8 @@ const Services = ({ services, isEnabled, speed }: { services: any, isEnabled: bo
   );
 };
 
-const About = ({ vision, isEnabled, speed }: { vision: any, isEnabled: boolean, speed: number }) => (
-  <section id="vision" className="py-20 md:py-32 bg-slate-900 text-white overflow-hidden scroll-mt-20">
+const About = ({ vision, isEnabled, speed, id }: { vision: any, isEnabled: boolean, speed: number, id?: string }) => (
+  <section id={id || "vision"} className="py-20 md:py-32 bg-slate-900 text-white overflow-hidden scroll-mt-20">
     <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-12 md:gap-20 items-center">
       <motion.div 
         initial={isEnabled ? { opacity: 0, x: -50 } : {}}
@@ -444,9 +445,9 @@ const BusinessCard = ({ biz, contact, isEnabled, speed }: { biz: any, contact: a
   );
 };
 
-const Gallery = ({ content, isEnabled, speed }: { content: any, isEnabled: boolean, speed: number }) => {
+const Gallery = ({ content, isEnabled, speed, id }: { content: any, isEnabled: boolean, speed: number, id?: string }) => {
   return (
-    <section className="py-20 md:py-32 bg-white overflow-hidden">
+    <section id={id || "gallery"} className="py-20 md:py-32 bg-white overflow-hidden scroll-mt-20">
       <div className="container mx-auto px-6">
         <motion.div 
           initial={isEnabled ? { opacity: 0, y: 30 } : {}}
@@ -487,8 +488,8 @@ const Gallery = ({ content, isEnabled, speed }: { content: any, isEnabled: boole
   );
 };
 
-const Contact = ({ contact, isEnabled, speed }: { contact: any, isEnabled: boolean, speed: number }) => (
-  <section id="contact" className="py-16 md:py-24 bg-white overflow-hidden scroll-mt-20">
+const Contact = ({ contact, isEnabled, speed, id }: { contact: any, isEnabled: boolean, speed: number, id?: string }) => (
+  <section id={id || "contact"} className="py-16 md:py-24 bg-white overflow-hidden scroll-mt-20">
     <div className="container mx-auto px-6">
       <motion.div 
         initial={isEnabled ? { opacity: 0, y: 50, scale: 0.95 } : {}}
@@ -556,11 +557,13 @@ export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.hash || '/');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdminOpen, setIsAdminOpen] = useState(window.location.hash === '#admin');
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash || '/';
       setCurrentPath(hash);
+      setIsAdminOpen(hash === '#admin');
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
@@ -599,6 +602,19 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, []);
 
+  const handleSaveContent = async (newContent: any) => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const { error } = await supabase
+      .from('site_content')
+      .update({ content: newContent })
+      .eq('id', 1); // Assuming ID 1 is the main content record
+
+    if (error) throw error;
+    setContent(newContent);
+  };
+
   // Sync design variables
   useEffect(() => {
     if (isLoading) return;
@@ -622,8 +638,8 @@ export default function App() {
     updateMetaTag('keywords', content.general.seo.keywords);
     
     // Favicon support
-    const faviconUrl = content.general.faviconUrl;
-    if (faviconUrl) {
+    const faviconUrl = content.general.faviconUrl || 'https://api.dicebear.com/7.x/shapes/svg?seed=esm&backgroundColor=ea580c';
+    if (true) {
       let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
       if (!link) {
         link = document.createElement('link');
@@ -639,6 +655,19 @@ export default function App() {
     }
   }, [content, isLoading]);
 
+  useEffect(() => {
+    if (!isLoading && window.location.hash && window.location.hash !== '#admin') {
+      const hash = window.location.hash;
+      const id = hash.substring(1);
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, [isLoading]);
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-slate-950 flex items-center justify-center">
@@ -651,8 +680,9 @@ export default function App() {
     );
   }
 
-  const activePage = content.pages.find(p => p.slug === currentPath) 
-    || content.pages.find(p => p.slug === '/' + currentPath.replace('#', ''))
+  const activePage = content.pages.find(p => (p.slug || p.id) === currentPath) 
+    || (currentPath.startsWith('#') ? content.pages.find(p => (p.slug || p.id) === '/') : null)
+    || content.pages.find(p => (p.slug || p.id) === '/' + currentPath.replace('#', ''))
     || content.pages[0];
 
   const renderBlock = (block: Block) => {
@@ -673,15 +703,15 @@ export default function App() {
       case 'stats':
         return <Stats stats={block.content} isEnabled={isEnabled} speed={speed} />;
       case 'services':
-        return <Services services={block.content} isEnabled={isEnabled} speed={speed} />;
+        return <Services services={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
       case 'vision':
-        return <About vision={block.content} isEnabled={isEnabled} speed={speed} />;
+        return <About vision={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
       case 'gallery':
-        return <Gallery content={block.content} isEnabled={isEnabled} speed={speed} />;
+        return <Gallery content={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
       case 'businessCard':
         return <BusinessCard biz={block.content} contact={activePage.blocks.find(b => b.type === 'contact')?.content || content.pages[0].blocks.find(b => b.type === 'contact')?.content} isEnabled={isEnabled} speed={speed} />;
       case 'contact':
-        return <Contact contact={block.content} isEnabled={isEnabled} speed={speed} />;
+        return <Contact contact={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
       case 'text':
         return (
           <section className="py-20 min-h-[300px] flex items-center bg-white overflow-hidden">
@@ -701,6 +731,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen font-sans selection:bg-orange-600 selection:text-white bg-white">
+      {isAdminOpen && (
+        <AdminPanel 
+          initialContent={content} 
+          onSave={handleSaveContent} 
+          onClose={() => {
+            setIsAdminOpen(false);
+            window.location.hash = '/';
+          }} 
+        />
+      )}
       {/* Navigation */}
       <nav className={`fixed w-full z-[100] transition-all duration-500 backdrop-blur-xl border-b border-white/10 bg-slate-900/60`}>
         <div className="container mx-auto px-6 h-16 md:h-24 flex items-center justify-between">

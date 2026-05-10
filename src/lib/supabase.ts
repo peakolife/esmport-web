@@ -24,3 +24,24 @@ export const getSupabase = () => {
   }
 };
 
+export const uploadImage = async (file: File) => {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+  const filePath = `site-assets/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('assets') // Assuming a bucket named 'assets' exists or will be created
+    .upload(filePath, file);
+
+  if (uploadError) {
+    console.error('Error uploading image:', uploadError);
+    return null;
+  }
+
+  const { data } = supabase.storage.from('assets').getPublicUrl(filePath);
+  return data.publicUrl;
+};
+
