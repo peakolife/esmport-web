@@ -22,7 +22,10 @@ import {
   BarChart3,
   Award,
   IdCard,
-  X
+  X,
+  MessageSquare,
+  HelpCircle,
+  Zap
 } from 'lucide-react';
 import { getSupabase, uploadImage } from '../lib/supabase';
 
@@ -59,6 +62,37 @@ const BLOCK_TEMPLATES: Record<string, any> = {
       sectionHeading: 'Size Özel Çözümler',
       items: [
         { title: 'Yeni Hizmet', desc: 'Hizmet açıklaması.', icon: 'Truck', color: 'bg-orange-50 text-orange-600' }
+      ]
+    }
+  },
+  features: {
+    type: 'features',
+    content: {
+      sectionTitle: 'ÖZELLİKLERİMİZ',
+      sectionHeading: 'Neden Biz?',
+      items: [
+        { title: 'Hızlı Teslimat', desc: 'Ürünlerinizi zamanında ulaştırıyoruz.', icon: 'Zap' },
+        { title: 'Güvenli Taşıma', desc: 'Eşyalarınız bizimle güvende.', icon: 'Lock' }
+      ]
+    }
+  },
+  testimonials: {
+    type: 'testimonials',
+    content: {
+      sectionTitle: 'MÜŞTERİ YORUMLARI',
+      sectionHeading: 'Hakkımızda Ne Dediler?',
+      items: [
+        { name: 'Ahmet Yılmaz', role: 'Şirket Sahibi', comment: 'Harika bir deneyimdi, çok teşekkürler.', image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80' }
+      ]
+    }
+  },
+  faq: {
+    type: 'faq',
+    content: {
+      sectionTitle: 'S.S.S',
+      sectionHeading: 'Sıkça Sorulan Sorular',
+      items: [
+        { question: 'Nasıl teklif alabilirim?', answer: 'İletişim formunu doldurarak veya bizi arayarak teklif alabilirsiniz.' }
       ]
     }
   },
@@ -872,9 +906,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                             <optgroup label="Bölüm Çapaları (Anchor)">
                               <option value="#hero">Giriş (Hero)</option>
                               <option value="#services">Hizmetler</option>
+                              <option value="#features">Özellikler</option>
                               <option value="#stats">İstatistikler</option>
                               <option value="#vision">Vizyon</option>
                               <option value="#gallery">Galeri</option>
+                              <option value="#testimonials">Yorumlar</option>
+                              <option value="#faq">S.S.S</option>
                               <option value="#contact">İletişim</option>
                             </optgroup>
                             <optgroup label="Özel Link">
@@ -1038,6 +1075,156 @@ const BlockEditor = ({ block, pageId, content, setContent, handleFileUpload, isU
                 <Plus className="w-4 h-4" /> Yeni Hizmet Ekle
               </button>
             </div>
+          </div>
+        </div>
+      );
+    case 'features':
+      return (
+        <div className="space-y-6">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <InputField label="Bölüm Başlığı" value={block.content.sectionTitle} onChange={(val) => updateBlockContent({ ...block.content, sectionTitle: val })} />
+            <InputField label="Alt Başlık" value={block.content.sectionHeading} onChange={(val) => updateBlockContent({ ...block.content, sectionHeading: val })} />
+          </div>
+          <div className="grid gap-4">
+            {block.content.items.map((item: any, idx: number) => (
+              <div key={idx} className="p-4 bg-slate-900 rounded-xl space-y-3 relative group">
+                <button 
+                  onClick={() => {
+                    const newList = [...block.content.items];
+                    newList.splice(idx, 1);
+                    updateBlockContent({ ...block.content, items: newList });
+                  }}
+                  className="absolute top-2 right-2 p-1 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <InputField label="Özellik Başlığı" value={item.title} onChange={(val) => {
+                  const newList = [...block.content.items];
+                  newList[idx].title = val;
+                  updateBlockContent({ ...block.content, items: newList });
+                }} />
+                <TextAreaField label="Açıklama" value={item.desc} onChange={(val) => {
+                  const newList = [...block.content.items];
+                  newList[idx].desc = val;
+                  updateBlockContent({ ...block.content, items: newList });
+                }} />
+              </div>
+            ))}
+            <button 
+              onClick={() => updateBlockContent({ 
+                ...block.content, 
+                items: [...block.content.items, { title: 'Yeni Özellik', desc: 'Açıklama', icon: 'Zap' }] 
+              })}
+              className="p-4 border-2 border-dashed border-slate-800 rounded-xl hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+            >
+              <Plus className="w-4 h-4" /> Özellik Ekle
+            </button>
+          </div>
+        </div>
+      );
+    case 'testimonials':
+      return (
+        <div className="space-y-6">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <InputField label="Bölüm Başlığı" value={block.content.sectionTitle} onChange={(val) => updateBlockContent({ ...block.content, sectionTitle: val })} />
+            <InputField label="Alt Başlık" value={block.content.sectionHeading} onChange={(val) => updateBlockContent({ ...block.content, sectionHeading: val })} />
+          </div>
+          <div className="grid gap-4">
+            {block.content.items.map((item: any, idx: number) => (
+              <div key={idx} className="p-4 bg-slate-900 rounded-xl space-y-4 relative group">
+                <button 
+                  onClick={() => {
+                    const newList = [...block.content.items];
+                    newList.splice(idx, 1);
+                    updateBlockContent({ ...block.content, items: newList });
+                  }}
+                  className="absolute top-4 right-4 p-1 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <InputField label="İsim" value={item.name} onChange={(val) => {
+                    const newList = [...block.content.items];
+                    newList[idx].name = val;
+                    updateBlockContent({ ...block.content, items: newList });
+                  }} />
+                  <InputField label="Ünvan" value={item.role} onChange={(val) => {
+                    const newList = [...block.content.items];
+                    newList[idx].role = val;
+                    updateBlockContent({ ...block.content, items: newList });
+                  }} />
+                </div>
+                <TextAreaField label="Yorum" value={item.comment} onChange={(val) => {
+                  const newList = [...block.content.items];
+                  newList[idx].comment = val;
+                  updateBlockContent({ ...block.content, items: newList });
+                }} />
+                <ImageUploadField 
+                  label="Profil Fotoğrafı" 
+                  value={item.image} 
+                  onUpload={(e) => handleFileUpload([...getUploadPath('items'), idx.toString(), 'image'], e)}
+                  onUrlChange={(val) => {
+                    const newList = [...block.content.items];
+                    newList[idx].image = val;
+                    updateBlockContent({ ...block.content, items: newList });
+                  }}
+                  isUploading={isUploading}
+                />
+              </div>
+            ))}
+            <button 
+              onClick={() => updateBlockContent({ 
+                ...block.content, 
+                items: [...block.content.items, { name: 'Yeni İsim', role: 'Müşteri', comment: 'Harika!', image: '' }] 
+              })}
+              className="p-4 border-2 border-dashed border-slate-800 rounded-xl hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+            >
+              <Plus className="w-4 h-4" /> Yorum Ekle
+            </button>
+          </div>
+        </div>
+      );
+    case 'faq':
+      return (
+        <div className="space-y-6">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <InputField label="Bölüm Başlığı" value={block.content.sectionTitle} onChange={(val) => updateBlockContent({ ...block.content, sectionTitle: val })} />
+            <InputField label="Alt Başlık" value={block.content.sectionHeading} onChange={(val) => updateBlockContent({ ...block.content, sectionHeading: val })} />
+          </div>
+          <div className="grid gap-4">
+            {block.content.items.map((item: any, idx: number) => (
+              <div key={idx} className="p-4 bg-slate-900 rounded-xl space-y-3 relative group">
+                <button 
+                  onClick={() => {
+                    const newList = [...block.content.items];
+                    newList.splice(idx, 1);
+                    updateBlockContent({ ...block.content, items: newList });
+                  }}
+                  className="absolute top-2 right-2 p-1 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <InputField label="Soru" value={item.question} onChange={(val) => {
+                  const newList = [...block.content.items];
+                  newList[idx].question = val;
+                  updateBlockContent({ ...block.content, items: newList });
+                }} />
+                <TextAreaField label="Cevap" value={item.answer} onChange={(val) => {
+                  const newList = [...block.content.items];
+                  newList[idx].answer = val;
+                  updateBlockContent({ ...block.content, items: newList });
+                }} />
+              </div>
+            ))}
+            <button 
+              onClick={() => updateBlockContent({ 
+                ...block.content, 
+                items: [...block.content.items, { question: 'Yeni Soru', answer: 'Yeni Cevap' }] 
+              })}
+              className="p-4 border-2 border-dashed border-slate-800 rounded-xl hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+            >
+              <Plus className="w-4 h-4" /> Soru Ekle
+            </button>
           </div>
         </div>
       );

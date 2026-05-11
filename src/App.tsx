@@ -26,7 +26,14 @@ import {
   AlertCircle,
   Edit,
   Settings,
-  Lock
+  Lock,
+  Zap,
+  HelpCircle,
+  MessageSquare,
+  Star,
+  ArrowUp,
+  Award,
+  ChevronDown
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AdminPanel } from './components/AdminPanel';
@@ -35,7 +42,7 @@ import { getSupabase } from './lib/supabase';
 
 interface Block {
   id: string;
-  type: 'hero' | 'stats' | 'services' | 'vision' | 'businessCard' | 'contact' | 'text' | 'image' | 'gallery';
+  type: 'hero' | 'stats' | 'services' | 'vision' | 'businessCard' | 'contact' | 'text' | 'image' | 'gallery' | 'features' | 'testimonials' | 'faq';
   content: any;
 }
 
@@ -224,7 +231,24 @@ const INITIAL_CONTENT: SiteContent = {
 // Leftovers removed - Stage 1
 
 const IconComponent = ({ name, className }: { name: string, className?: string }) => {
-  const icons: Record<string, any> = { Truck, ShieldCheck, Clock, MapPin, Globe, Phone, Mail, BarChart3, Users, Trophy };
+  const icons: Record<string, any> = { 
+    Truck, 
+    ShieldCheck, 
+    Clock, 
+    MapPin, 
+    Globe, 
+    Phone, 
+    Mail, 
+    BarChart3, 
+    Users, 
+    Trophy,
+    Zap,
+    Lock,
+    Star,
+    Award,
+    HelpCircle,
+    MessageSquare
+  };
   const Icon = (name && icons[name]) ? icons[name] : Truck;
   return <Icon className={className} />;
 };
@@ -269,7 +293,7 @@ const Hero = ({ content }: { content: any }) => {
           >
             {content.subtitle}
           </motion.span>
-          <h1 className="text-3xl sm:text-6xl md:text-8xl font-black text-white mb-6 leading-[1.1] font-display break-words" dangerouslySetInnerHTML={{ __html: content.title }} />
+          <h1 className="text-3xl sm:text-6xl md:text-8xl font-black text-white mb-6 leading-[1.2] md:leading-[1.1] font-display break-words" dangerouslySetInnerHTML={{ __html: content.title }} />
           <p className="text-sm sm:text-lg md:text-xl text-gray-300 mb-10 leading-relaxed font-medium max-w-lg">{content.description}</p>
           <div className="flex flex-col sm:flex-row gap-4">
             <a 
@@ -324,7 +348,7 @@ const Services = ({ services, isEnabled, speed, id }: { services: any, isEnabled
           className="mb-12 md:mb-16 text-center md:text-left"
         >
           <h2 className="text-primary font-bold uppercase tracking-[0.3em] text-xs md:text-sm mb-4 md:mb-6">{services.sectionTitle}</h2>
-          <h3 className="text-3xl md:text-6xl font-black text-slate-900 leading-tight font-display tracking-tight">{services.sectionHeading}</h3>
+          <h3 className="text-3xl md:text-6xl font-black text-slate-900 leading-[1.2] md:leading-tight font-display tracking-tight">{services.sectionHeading}</h3>
         </motion.div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {services.items.map((service: any, idx: number) => (
@@ -374,7 +398,7 @@ const About = ({ vision, isEnabled, speed, id }: { vision: any, isEnabled: boole
         className="text-left"
       >
         <h2 className="text-primary font-bold uppercase tracking-[0.4em] text-[10px] md:text-xs mb-3 md:mb-6">{vision.sectionTitle}</h2>
-        <h3 className="text-3xl sm:text-4xl md:text-7xl font-black mb-6 md:mb-10 font-display leading-[1.1] md:leading-[0.9] tracking-tighter">{vision.title}</h3>
+        <h3 className="text-3xl sm:text-4xl md:text-7xl font-black mb-6 md:mb-10 font-display leading-[1.2] md:leading-[0.9] tracking-tighter">{vision.title}</h3>
         <p className="text-slate-400 mb-8 md:mb-12 leading-relaxed text-sm sm:text-base md:text-xl font-medium">{vision.description}</p>
         <div className="flex flex-col sm:flex-row gap-5 md:gap-10 items-start sm:items-center p-6 md:p-10 bg-white/5 rounded-[1.5rem] md:rounded-[2rem] border border-white/10 hover:bg-white/[0.08] transition-all group">
           <div className="w-14 h-14 md:w-20 md:h-20 bg-primary/20 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shrink-0">
@@ -402,7 +426,7 @@ const BusinessCard = ({ biz, contact, isEnabled, speed }: { biz: any, contact: a
           className="text-center mb-10 md:mb-20"
         >
           <h2 className="text-primary font-bold uppercase tracking-widest text-[10px] md:text-sm mb-3 md:mb-4">{biz.sectionTitle}</h2>
-          <h3 className="text-3xl md:text-5xl font-black text-slate-900 font-display uppercase tracking-tight leading-tight">{biz.sectionHeading}</h3>
+          <h3 className="text-3xl md:text-5xl font-black text-slate-900 font-display uppercase tracking-tight leading-[1.2] md:leading-tight">{biz.sectionHeading}</h3>
         </motion.div>
         
         <div className="flex flex-col lg:flex-row justify-center items-center gap-8 md:gap-16 perspective-[3000px] w-full max-w-5xl mx-auto">
@@ -476,7 +500,7 @@ const Gallery = ({ content, isEnabled, speed, id }: { content: any, isEnabled: b
           className="mb-12 md:mb-16 text-center"
         >
           <h2 className="text-primary font-bold uppercase tracking-[0.3em] text-xs md:text-sm mb-4">{content.sectionTitle}</h2>
-          <h3 className="text-3xl md:text-6xl font-black text-slate-900 leading-tight font-display tracking-tight">{content.sectionHeading}</h3>
+          <h3 className="text-3xl md:text-6xl font-black text-slate-900 leading-[1.2] md:leading-tight font-display tracking-tight">{content.sectionHeading}</h3>
         </motion.div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
@@ -507,6 +531,155 @@ const Gallery = ({ content, isEnabled, speed, id }: { content: any, isEnabled: b
   );
 };
 
+const Features = ({ content, isEnabled, speed, id }: { content: any; isEnabled: boolean; speed: number; id?: string }) => {
+  const animProps = (delay = 0) => isEnabled ? {
+    initial: { opacity: 0, y: 20 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true },
+    transition: { duration: speed, delay }
+  } : {};
+
+  return (
+    <section id={id} className="py-20 md:py-32 bg-slate-50 relative overflow-hidden">
+      <div className="container mx-auto px-6">
+        <div className="grid lg:grid-cols-2 gap-12 md:gap-20 items-center">
+          <div className="text-left">
+            <motion.span {...animProps()} className="text-primary font-bold tracking-[0.3em] uppercase text-[10px] md:text-xs block mb-4 md:mb-6">
+              {content.sectionTitle}
+            </motion.span>
+            <motion.h2 {...animProps(0.1)} className="text-3xl md:text-6xl font-black text-slate-900 leading-[1.2] md:leading-tight mb-8 font-display tracking-tight">
+              {content.sectionHeading}
+            </motion.h2>
+            <div className="space-y-6">
+              {content.items.map((item: any, idx: number) => (
+                <motion.div key={idx} {...animProps(0.2 + idx * 0.1)} className="flex gap-4 md:gap-6 group">
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-primary text-white rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
+                    {item.icon === 'Zap' ? <Zap className="w-6 h-6 md:w-8 md:h-8" /> : <ShieldCheck className="w-6 h-6 md:w-8 md:h-8" />}
+                  </div>
+                  <div>
+                    <h3 className="text-lg md:text-2xl font-black text-slate-900 mb-1 md:mb-2 font-display uppercase tracking-tight">{item.title}</h3>
+                    <p className="text-slate-500 text-sm md:text-base leading-relaxed font-medium">{item.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+          <motion.div {...animProps(0.3)} className="relative">
+             <div className="aspect-square bg-primary/5 rounded-[2rem] md:rounded-[4rem] absolute -inset-4 md:-inset-10 rotate-6" />
+             <div className="aspect-square bg-slate-900 rounded-[2rem] md:rounded-[4rem] flex items-center justify-center relative overflow-hidden shadow-2xl border border-white/5">
+                <Truck className="w-24 h-24 md:w-48 md:h-48 text-primary opacity-20" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
+             </div>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const Testimonials = ({ content, isEnabled, speed, id }: { content: any; isEnabled: boolean; speed: number; id?: string }) => {
+  return (
+    <section id={id} className="py-20 md:py-32 bg-slate-900 text-white relative overflow-hidden">
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="text-center max-w-3xl mx-auto mb-16 md:mb-20">
+          <span className="text-primary font-bold tracking-[0.3em] uppercase text-[10px] md:text-xs block mb-4 md:mb-6">
+            {content.sectionTitle}
+          </span>
+          <h2 className="text-3xl md:text-6xl font-black leading-[1.2] md:leading-tight font-display tracking-tight">
+            {content.sectionHeading}
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          {content.items.map((item: any, idx: number) => (
+            <motion.div 
+              key={idx}
+              initial={isEnabled ? { opacity: 0, y: 30 } : {}}
+              whileInView={isEnabled ? { opacity: 1, y: 0 } : {}}
+              viewport={{ once: true }}
+              transition={{ duration: speed, delay: idx * 0.1 }}
+              className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 md:p-10 rounded-[1.5rem] md:rounded-[2.5rem] hover:bg-white/10 transition-colors group text-left"
+            >
+              <div className="flex gap-1 text-primary mb-6 md:mb-8">
+                {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
+              </div>
+              <p className="text-slate-300 leading-relaxed text-sm md:text-lg font-medium italic mb-8 md:mb-10">
+                "{item.comment}"
+              </p>
+              <div className="flex items-center gap-4 md:gap-5">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden bg-slate-800 border-2 border-primary shrink-0 transition-transform group-hover:scale-110">
+                  <img src={item.image || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + item.name} className="w-full h-full object-cover" alt={item.name} />
+                </div>
+                <div>
+                  <h4 className="font-black text-white text-base md:text-xl tracking-tight">{item.name}</h4>
+                  <p className="text-[8px] md:text-[10px] text-primary font-black tracking-widest uppercase mt-1">{item.role}</p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const FAQ = ({ content, isEnabled, speed, id }: { content: any; isEnabled: boolean; speed: number; id?: string }) => {
+  const [openIdx, setOpenIdx] = useState<number | null>(0);
+
+  return (
+    <section id={id} className="py-20 md:py-32 bg-white scroll-mt-20">
+      <div className="container mx-auto px-6 max-w-4xl">
+        <div className="text-center mb-16 md:mb-20">
+          <span className="text-primary font-bold tracking-[0.3em] uppercase text-[10px] md:text-xs block mb-4 md:mb-6">
+            {content.sectionTitle}
+          </span>
+          <h2 className="text-3xl md:text-6xl font-black text-slate-900 leading-[1.2] md:leading-tight font-display tracking-tight">
+            {content.sectionHeading}
+          </h2>
+        </div>
+
+        <div className="space-y-4 md:space-y-6">
+          {content.items.map((item: any, idx: number) => (
+            <motion.div 
+              key={idx}
+              initial={isEnabled ? { opacity: 0, x: -20 } : {}}
+              whileInView={isEnabled ? { opacity: 1, x: 0 } : {}}
+              viewport={{ once: true }}
+              transition={{ duration: speed, delay: idx * 0.1 }}
+              className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] overflow-hidden bg-slate-50/30 hover:shadow-xl hover:shadow-slate-200/20 transition-all"
+            >
+              <button 
+                onClick={() => setOpenIdx(openIdx === idx ? null : idx)}
+                className="w-full p-6 md:p-8 flex items-center justify-between text-left transition-colors group"
+              >
+                <span className="font-black text-slate-900 text-base md:text-2xl tracking-tight uppercase font-display leading-tight">{item.question}</span>
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all bg-white border border-slate-100 text-primary shadow-sm group-hover:scale-110 ${openIdx === idx ? 'bg-primary text-white rotate-180 shadow-primary/20' : ''}`}>
+                  <ChevronDown className="w-5 h-5 md:w-6 md:h-6" />
+                </div>
+              </button>
+              <AnimatePresence>
+                {openIdx === idx && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-6 md:p-8 pt-0 text-slate-500 leading-relaxed text-sm md:text-lg font-medium border-t border-slate-100/50">
+                      {item.answer}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const Contact = ({ contact, isEnabled, speed, id }: { contact: any, isEnabled: boolean, speed: number, id?: string }) => (
   <section id={id || "contact"} className="py-16 md:py-24 bg-white overflow-hidden scroll-mt-20">
     <div className="container mx-auto px-6">
@@ -518,7 +691,7 @@ const Contact = ({ contact, isEnabled, speed, id }: { contact: any, isEnabled: b
         className="bg-slate-950 rounded-[2rem] md:rounded-[4rem] p-8 sm:p-16 md:p-24 text-white flex flex-col lg:flex-row gap-10 md:gap-16 items-center relative overflow-hidden shadow-2xl"
       >
         <div className="z-10 flex-1 text-center lg:text-left">
-          <h2 className="text-2xl sm:text-4xl md:text-7xl font-black mb-4 md:mb-10 font-display uppercase tracking-tighter leading-tight">{contact.sectionHeading}</h2>
+          <h2 className="text-2xl sm:text-4xl md:text-7xl font-black mb-4 md:mb-10 font-display uppercase tracking-tighter leading-[1.2] md:leading-tight">{contact.sectionHeading}</h2>
           <p className="text-sm md:text-xl text-slate-400 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0">{contact.sectionDescription}</p>
         </div>
         <div className="z-10 grid gap-4 md:gap-6 w-full md:w-auto">
@@ -649,6 +822,19 @@ export default function App() {
     setIsAdminOpen(true);
     window.location.hash = '#admin';
   };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const handleVisible = () => {
+      setShowScrollTop(window.scrollY > 500);
+    };
+    window.addEventListener('scroll', handleVisible);
+    return () => window.removeEventListener('scroll', handleVisible);
+  }, []);
 
   // Live repair function to ensure structure
   const repairContent = (c: any) => {
@@ -844,6 +1030,12 @@ export default function App() {
         return <About vision={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
       case 'gallery':
         return <Gallery content={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
+      case 'features':
+        return <Features content={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
+      case 'testimonials':
+        return <Testimonials content={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
+      case 'faq':
+        return <FAQ content={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
       case 'businessCard':
         return <BusinessCard biz={block.content} contact={activePage.blocks.find(b => b.type === 'contact')?.content || content.pages[0].blocks.find(b => b.type === 'contact')?.content} isEnabled={isEnabled} speed={speed} />;
       case 'contact':
@@ -887,6 +1079,22 @@ export default function App() {
           defaultTab={adminTab}
         />
       )}
+
+      {/* Scroll to Top */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 z-40 bg-primary text-white p-4 rounded-2xl shadow-2xl shadow-primary/20 hover:scale-110 active:scale-95 transition-all"
+          >
+            <ArrowUp className="w-6 h-6" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       {/* Navigation */}
       <nav className={`fixed w-full z-[100] transition-all duration-500 backdrop-blur-xl border-b border-white/10 bg-slate-900/60`}>
         <div className="container mx-auto px-6 h-16 md:h-24 flex items-center justify-between">
