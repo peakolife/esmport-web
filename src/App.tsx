@@ -36,9 +36,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { AdminPanel } from './components/AdminPanel';
-
-import { getSupabase } from './lib/supabase';
+// AdminPanel and Supabase imports removed for static version
 
 interface Block {
   id: string;
@@ -97,10 +95,14 @@ interface SiteContent {
 }
 
 const INITIAL_CONTENT: SiteContent = {
+  // --- YEREL GÖRSEL YÜKLEME REHBERİ ---
+  // 1. Bilgisayarınızdaki resmi projenin 'public' klasörüne atın.
+  // 2. Koddaki tırnak içine '/dosya-adi.png' yazın (Örn: logoUrl: "/logo.png").
+  // 3. Favicon için de aynı yöntemi izleyin (Örn: faviconUrl: "/favicon.ico").
   general: {
     siteName: "ESM PORT",
-    logoUrl: "",
-    faviconUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=esm&backgroundColor=ea580c",
+    logoUrl: "/src/img/logo.svg", // Buraya /logo.png yazabilirsiniz
+    faviconUrl: "/src/img/logo.svg", // Buraya /favicon.ico yazabilirsiniz
     seo: {
       title: "ESM PORT | Lojistik ve Taşımacılık",
       description: "Profesyonel lojistik ve konteyner taşımacılığı.",
@@ -147,7 +149,7 @@ const INITIAL_CONTENT: SiteContent = {
             title: "TİCARETİN GÜCÜNÜ <span class=\"text-orange-500\">ESM PORT</span> İLE KEŞFEDİN",
             subtitle: "HIZ, GÜVEN VE ÜSTÜN HİZMET",
             description: "ESM PORT, lojistik dünyasında yeni nesil çözümler sunan öncü bir markadır. Liman ve antrepo operasyonlarınızda en güçlü ortağınız.",
-            image: "input_file_1.png"
+            image: "/src/img/hero.png"
           }
         },
         {
@@ -181,7 +183,7 @@ const INITIAL_CONTENT: SiteContent = {
             title: "Geleceğin Standartlarını Liderlikle Kuruyoruz",
             description: "Her yükü bir emanet bilerek; zamanında, hasarsız ve sürdürülebilir yöntemlerle taşıyarak değer katıyoruz. Sektördeki yenilikleri ESM PORT güvencesiyle müşterilerimize sunuyoruz.",
             experienceYear: "25 YIL",
-            image: "input_file_4.png"
+            image: "/src/img/vision.png"
           }
         },
         {
@@ -191,24 +193,13 @@ const INITIAL_CONTENT: SiteContent = {
             sectionTitle: "FİLOMUZ",
             sectionHeading: "Gücümüz ve Ekipmanlarımız",
             images: [
-              { url: "input_file_0.png", title: "Modern Tır Filosu" },
-              { url: "input_file_2.png", title: "Aktif Lojistik Ağı" },
-              { url: "input_file_3.png", title: "Yeni Nesil Araçlar" },
-              { url: "input_file_5.png", title: "Profesyonel Bakım" },
-              { url: "input_file_6.png", title: "Saha Operasyonları" },
-              { url: "input_file_1.png", title: "Gece Sevkiyatları" }
+              { url: "/src/img/truck3.jpg", title: "Modern Tır Filosu" },
+              { url: "/src/img/truck1.jpg", title: "Aktif Lojistik Ağı" },
+              { url: "/src/img/truck4.jpg", title: "Yeni Nesil Araçlar" },
+              { url: "/src/img/truck2.jpg", title: "Profesyonel Bakım" },
+              { url: "/src/img/truck5.jpg", title: "Saha Operasyonları" },
+              { url: "/src/img/truck3.jpg", title: "Gece Sevkiyatları" }
             ]
-          }
-        },
-        {
-          id: 'b5',
-          type: 'businessCard',
-          content: {
-            sectionTitle: "KURUMSAL KİMLİK",
-            sectionHeading: "Dijital Kartvizitimiz",
-            fullName: "Egemen Gençtürk",
-            position: "Genel Müdür / Founder",
-            description: "Modern logomuzun kartvizit üzerindeki izdüşümü. Güçlü, dinamik ve güvenilir."
           }
         },
         {
@@ -217,7 +208,7 @@ const INITIAL_CONTENT: SiteContent = {
           content: {
             sectionHeading: "Yükünüz Bizimle Daima Güvende.",
             sectionDescription: "Liman ve antrepo operasyonlarınızda ESM PORT güvencesiyle 7/24 hizmetinizdeyiz. Profesyonel ekibimize dilediğiniz an ulaşabilirsiniz.",
-            phone: "+90 212 555 0000",
+            phone: "+90 ",
             email: "info@esmport.com",
             address: "Lojistik Org. Bölgesi No:42, İstanbul"
           }
@@ -289,12 +280,12 @@ const Hero = ({ content }: { content: any }) => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="inline-block bg-primary/20 border border-primary/30 text-primary px-4 py-1 rounded-full text-[10px] sm:text-xs font-semibold mb-6 uppercase tracking-wider"
+            className="inline-block bg-primary text-white border border-primary/30 px-6 py-2 rounded-full text-[10px] sm:text-xs font-black mb-6 uppercase tracking-[0.2em] shadow-lg shadow-primary/20"
           >
             {content.subtitle}
           </motion.span>
-          <h1 className="text-3xl sm:text-6xl md:text-8xl font-black text-white mb-6 leading-[1.2] md:leading-[1.1] font-display break-words" dangerouslySetInnerHTML={{ __html: content.title }} />
-          <p className="text-sm sm:text-lg md:text-xl text-gray-300 mb-10 leading-relaxed font-medium max-w-lg">{content.description}</p>
+          <h1 className="text-4xl sm:text-6xl md:text-8xl font-black text-white mb-6 leading-[1.2] md:leading-[1.1] font-display break-words" dangerouslySetInnerHTML={{ __html: content.title }} />
+          <p className="text-sm sm:text-lg md:text-xl text-white/80 mb-10 leading-relaxed font-medium max-w-lg">{content.description}</p>
           <div className="flex flex-col sm:flex-row gap-4">
             <a 
               href="#services"
@@ -311,9 +302,9 @@ const Hero = ({ content }: { content: any }) => {
 
 const Stats = ({ stats, isEnabled, speed }: { stats: any[], isEnabled: boolean, speed: number }) => {
   return (
-    <section className="py-16 md:py-24 bg-slate-50 overflow-hidden">
+    <section className="py-12 md:py-24 bg-slate-50 overflow-hidden">
       <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12 text-center">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12 text-center">
           {stats.map((stat, idx) => (
             <motion.div 
               key={idx} 
@@ -321,13 +312,13 @@ const Stats = ({ stats, isEnabled, speed }: { stats: any[], isEnabled: boolean, 
               whileInView={isEnabled ? { opacity: 1, scale: 1, y: 0 } : {}} 
               transition={isEnabled ? { delay: idx * 0.1, duration: speed, ease: [0.16, 1, 0.3, 1] } : {}} 
               viewport={{ once: true, margin: "-50px" }}
-              className="group"
+              className="group flex flex-col items-center"
             >
-              <div className="inline-flex items-center justify-center w-14 h-14 md:w-20 md:h-20 bg-white rounded-2xl md:rounded-3xl shadow-xl shadow-slate-200/50 text-primary mb-4 md:mb-6 transition-all group-hover:scale-110 group-hover:-rotate-6 group-hover:shadow-primary/10">
-                <IconComponent name={stat.icon} className="w-7 h-7 md:w-10 md:h-10" />
+              <div className="inline-flex items-center justify-center w-12 h-12 md:w-20 md:h-20 bg-white rounded-xl md:rounded-3xl shadow-xl shadow-slate-200/50 text-primary mb-3 md:mb-6 transition-all group-hover:scale-110 group-hover:-rotate-6">
+                <IconComponent name={stat.icon} className="w-6 h-6 md:w-10 md:h-10" />
               </div>
-              <h3 className="text-2xl xs:text-3xl md:text-5xl font-black text-slate-900 mb-1 md:mb-2 font-display tracking-tighter">{stat.value}</h3>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-[8px] md:text-[10px]">{stat.label}</p>
+              <h3 className="text-xl md:text-5xl font-black text-slate-900 mb-1 md:mb-2 font-display tracking-tighter">{stat.value}</h3>
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] md:text-[10px]">{stat.label}</p>
             </motion.div>
           ))}
         </div>
@@ -413,80 +404,6 @@ const About = ({ vision, isEnabled, speed, id }: { vision: any, isEnabled: boole
     </div>
   </section>
 );
-
-const BusinessCard = ({ biz, contact, isEnabled, speed }: { biz: any, contact: any, isEnabled: boolean, speed: number }) => {
-  return (
-    <section className="py-16 md:py-32 bg-slate-50 overflow-hidden">
-      <div className="container mx-auto px-6">
-        <motion.div 
-          initial={isEnabled ? { opacity: 0, y: 30 } : {}} 
-          whileInView={isEnabled ? { opacity: 1, y: 0 } : {}} 
-          viewport={{ once: true }}
-          transition={isEnabled ? { duration: speed } : {}}
-          className="text-center mb-10 md:mb-20"
-        >
-          <h2 className="text-primary font-bold uppercase tracking-widest text-[10px] md:text-sm mb-3 md:mb-4">{biz.sectionTitle}</h2>
-          <h3 className="text-3xl md:text-5xl font-black text-slate-900 font-display uppercase tracking-tight leading-[1.2] md:leading-tight">{biz.sectionHeading}</h3>
-        </motion.div>
-        
-        <div className="flex flex-col lg:flex-row justify-center items-center gap-8 md:gap-16 perspective-[3000px] w-full max-w-5xl mx-auto">
-          <motion.div 
-            initial={isEnabled ? { opacity: 0, rotateY: -30, x: -30 } : {}}
-            whileInView={isEnabled ? { opacity: 1, rotateY: 0, x: 0 } : {}}
-            viewport={{ once: true }}
-            transition={isEnabled ? { duration: speed * 1.5, ease: [0.16, 1, 0.3, 1] } : {}}
-            whileHover={{ scale: 1.02, rotateY: -10 }}
-            className="w-full max-w-[440px] h-[200px] xs:h-[240px] sm:h-[270px] bg-slate-900 rounded-[1.5rem] sm:rounded-[2.5rem] p-6 xs:p-8 sm:p-12 relative overflow-hidden shadow-2xl border border-white/5 group text-left"
-          >
-            <div className="relative z-10 h-full flex flex-col justify-between">
-              <div className="flex items-center gap-3 sm:gap-5">
-                <div className="p-2 sm:p-4 bg-primary rounded-xl sm:rounded-2xl shadow-xl shadow-primary/30 shrink-0">
-                  <Truck className="text-white w-6 h-6 sm:w-12 sm:h-12" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xl xs:text-2xl sm:text-4xl font-black tracking-tighter text-white uppercase italic leading-none whitespace-nowrap">ESM<span className="text-primary not-italic">PORT</span></span>
-                  <span className="text-[7px] sm:text-[10px] font-bold text-primary/60 uppercase tracking-[0.5em] mt-1 sm:mt-2">Lojistik</span>
-                </div>
-              </div>
-              <div className="space-y-1 sm:space-y-3">
-                <p className="text-primary font-black text-[9px] sm:text-sm uppercase tracking-[0.3em]">Liman, Antrepo & Depo</p>
-                <div className="h-0.5 sm:h-1.5 w-12 sm:w-16 bg-primary rounded-full group-hover:w-24 transition-all duration-500" />
-              </div>
-            </div>
-            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl opacity-50" />
-          </motion.div>
-
-          <motion.div 
-            initial={isEnabled ? { opacity: 0, rotateY: 30, x: 30 } : {}}
-            whileInView={isEnabled ? { opacity: 1, rotateY: 0, x: 0 } : {}}
-            viewport={{ once: true }}
-            transition={isEnabled ? { duration: speed * 1.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] } : {}}
-            whileHover={{ scale: 1.02, rotateY: 10 }}
-            className="w-full max-w-[440px] h-[200px] xs:h-[240px] sm:h-[270px] bg-white rounded-[1.5rem] sm:rounded-[2.5rem] p-6 xs:p-8 sm:p-12 relative overflow-hidden shadow-xl border border-slate-100 group text-left"
-          >
-            <div className="flex flex-col h-full justify-between relative z-10">
-              <div>
-                <h4 className="text-xl xs:text-2xl sm:text-3xl font-black text-slate-900 leading-none tracking-tight">{biz.fullName}</h4>
-                <p className="text-primary font-bold uppercase tracking-[0.4em] text-[7px] sm:text-[10px] mt-2 sm:mt-3">{biz.position}</p>
-              </div>
-              <div className="space-y-1 sm:space-y-3">
-                <div className="flex items-center gap-2 sm:gap-4 text-slate-600 transition-colors hover:text-primary"><Phone className="w-3 h-3 sm:w-4 sm:h-4 text-primary" /><span className="text-[10px] xs:text-xs sm:text-sm font-bold truncate">{contact.phone}</span></div>
-                <div className="flex items-center gap-2 sm:gap-4 text-slate-600 transition-colors hover:text-primary"><Mail className="w-3 h-3 sm:w-4 sm:h-4 text-primary" /><span className="text-[10px] xs:text-xs sm:text-sm font-bold truncate">{contact.email}</span></div>
-              </div>
-              <div className="flex justify-between items-end border-t border-slate-50 pt-2 sm:pt-4">
-                <div className="flex items-center gap-2">
-                  <Truck className="text-primary w-3 h-3 sm:w-5 sm:h-5" />
-                  <span className="text-[8px] sm:text-xs font-black text-slate-300 uppercase tracking-widest leading-none">ESM<span className="text-primary/50">PORT</span></span>
-                </div>
-              </div>
-            </div>
-            <div className="absolute top-0 left-0 w-1.5 sm:w-2.5 h-full bg-primary" />
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-};
 
 const Gallery = ({ content, isEnabled, speed, id }: { content: any, isEnabled: boolean, speed: number, id?: string }) => {
   return (
@@ -733,14 +650,9 @@ const hexToRgb = (hex: string) => {
 };
 
 export default function App() {
-  const [content, setContent] = useState<SiteContent>(INITIAL_CONTENT);
+  const [content] = useState<SiteContent>(INITIAL_CONTENT);
   const [currentPath, setCurrentPath] = useState(window.location.hash || '/');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAdminOpen, setIsAdminOpen] = useState(window.location.hash === '#admin');
-  const [adminTab, setAdminTab] = useState('general');
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
-  const [recordId, setRecordId] = useState<any>(null);
   const { scrollYProgress } = useScroll();
 
   const normalizedPath = currentPath.startsWith('#') ? currentPath.substring(1) : currentPath;
@@ -748,21 +660,12 @@ export default function App() {
     || content.pages[0];
 
   useEffect(() => {
-    const checkLogin = () => {
-      setIsAdminLoggedIn(localStorage.getItem('admin_session') === 'true');
-    };
-    checkLogin();
-    window.addEventListener('storage', checkLogin);
-    // Also check on hash change since AdminPanel might set it
     const handleHashChange = () => {
       const hash = window.location.hash || '/';
       setCurrentPath(hash);
-      setIsAdminOpen(hash === '#admin');
-      checkLogin();
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => {
-      window.removeEventListener('storage', checkLogin);
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
@@ -817,134 +720,12 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [activePage]);
 
-  const openAdmin = (tab = 'general') => {
-    setAdminTab(tab);
-    setIsAdminOpen(true);
-    window.location.hash = '#admin';
-  };
-
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const [showScrollTop, setShowScrollTop] = useState(false);
   useEffect(() => {
-    const handleVisible = () => {
-      setShowScrollTop(window.scrollY > 500);
-    };
-    window.addEventListener('scroll', handleVisible);
-    return () => window.removeEventListener('scroll', handleVisible);
-  }, []);
-
-  // Live repair function to ensure structure
-  const repairContent = (c: any) => {
-    if (!c) return INITIAL_CONTENT;
-    const repaired = {
-      ...INITIAL_CONTENT,
-      ...c,
-      general: { ...INITIAL_CONTENT.general, ...(c.general || {}) },
-      design: { ...INITIAL_CONTENT.design, ...(c.design || {}) },
-      pages: (c.pages && Array.isArray(c.pages) && c.pages.length > 0) ? c.pages : INITIAL_CONTENT.pages,
-      menu: (c.menu && Array.isArray(c.menu) && c.menu.length > 0) ? c.menu : INITIAL_CONTENT.menu
-    };
-
-    // Deep check for blocks in the home page
-    if (repaired.pages[0] && (!repaired.pages[0].blocks || !Array.isArray(repaired.pages[0].blocks) || repaired.pages[0].blocks.length < 2)) {
-      console.log("Repairing missing blocks for home page...");
-      repaired.pages[0].blocks = JSON.parse(JSON.stringify(INITIAL_CONTENT.pages[0].blocks));
-    }
-
-    return repaired;
-  };
-
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        const supabase = getSupabase();
-        if (!supabase) {
-          setIsLoading(false);
-          return;
-        }
-
-        console.log("Fetching site content from Supabase...");
-        const { data, error, status } = await supabase
-          .from('site_content')
-          .select('id, content')
-          .maybeSingle(); 
-        
-        if (error) {
-          console.error("Supabase fetch error (Status: " + status + "):", error);
-          throw error;
-        }
-
-        if (data) {
-          console.log("Data fetched from Supabase, ID:", data.id);
-          setRecordId(data.id);
-          if (data.content) {
-            setContent(repairContent(data.content));
-          }
-        } else {
-          console.log("No data found in 'site_content' table (empty results).");
-        }
-      } catch (err) {
-        console.log("Supabase fetch info:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    // Safety timeout: stop loading after 5 seconds no matter what
-    const timeout = setTimeout(() => setIsLoading(false), 5000);
-    
-    fetchContent();
-    
-    return () => clearTimeout(timeout);
-  }, []);
-
-  const handleSaveContent = async (newContent: any) => {
-    setIsAdminOpen(false);
-    try {
-      const supabase = getSupabase();
-      if (!supabase) return;
-
-      const finalizedContent = repairContent(newContent);
-      
-      let res;
-      if (recordId) {
-        res = await supabase
-          .from('site_content')
-          .update({ content: finalizedContent })
-          .eq('id', recordId);
-      } else {
-        res = await supabase
-          .from('site_content')
-          .insert({ content: finalizedContent })
-          .select()
-          .maybeSingle();
-        
-        if (res.data) setRecordId(res.data.id);
-      }
-
-      if (res.error) throw res.error;
-      
-      setContent(finalizedContent);
-      console.log("Content saved successfully!");
-    } catch (err) {
-      console.error("Error saving content:", err);
-      alert("Değişiklikler kaydedilemedi. Lütfen Supabase Storage ve Database yapılandırmasını kontrol edin.");
-    }
-  };
-
-  const handleResetContent = async () => {
-    if (window.confirm('Tüm site verileri ilk haline (3 saat önceki verilere) döndürülecek. Bu işlem geri alınamaz. Emin misiniz?')) {
-      await handleSaveContent(INITIAL_CONTENT);
-      window.location.reload();
-    }
-  };
-
-  // Sync design variables
-  useEffect(() => {
-    if (isLoading) return;
+    // Dynamic styles sync
     document.documentElement.style.setProperty('--primary', content.design.primaryColor);
     document.documentElement.style.setProperty('--primary-rgb', hexToRgb(content.design.primaryColor));
     
@@ -966,26 +747,19 @@ export default function App() {
     
     // Favicon support
     const faviconUrl = content.general.faviconUrl || 'https://api.dicebear.com/7.x/shapes/svg?seed=esm&backgroundColor=ea580c';
-    if (true) {
-      let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        link.id = 'dynamic-favicon';
-        document.getElementsByTagName('head')[0].appendChild(link);
-      }
-      link.href = faviconUrl;
-      
-      if (faviconUrl.includes('image/png')) link.type = 'image/png';
-      else if (faviconUrl.includes('image/x-icon') || faviconUrl.endsWith('.ico')) link.type = 'image/x-icon';
-      else if (faviconUrl.includes('image/svg+xml') || faviconUrl.endsWith('.svg')) link.type = 'image/svg+xml';
+    let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      link.id = 'dynamic-favicon';
+      document.getElementsByTagName('head')[0].appendChild(link);
     }
-  }, [content, isLoading]);
+    link.href = faviconUrl;
+  }, [content]);
 
   useEffect(() => {
-    if (!isLoading && window.location.hash && window.location.hash !== '#admin') {
-      const hash = window.location.hash;
-      const id = hash.substring(1);
+    if (window.location.hash) {
+      const id = window.location.hash.substring(1);
       const element = document.getElementById(id);
       if (element) {
         setTimeout(() => {
@@ -993,19 +767,7 @@ export default function App() {
         }, 100);
       }
     }
-  }, [isLoading]);
-
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-slate-950 flex items-center justify-center">
-        <motion.div 
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full shadow-[0_0_20px_rgba(234,88,12,0.3)]"
-        />
-      </div>
-    );
-  }
+  }, []);
 
   const renderBlock = (block: Block) => {
     const isEnabled = content.design.animations.scrollAnimations;
@@ -1036,8 +798,6 @@ export default function App() {
         return <Testimonials content={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
       case 'faq':
         return <FAQ content={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
-      case 'businessCard':
-        return <BusinessCard biz={block.content} contact={activePage.blocks.find(b => b.type === 'contact')?.content || content.pages[0].blocks.find(b => b.type === 'contact')?.content} isEnabled={isEnabled} speed={speed} />;
       case 'contact':
         return <Contact contact={block.content} isEnabled={isEnabled} speed={speed} id={block.type} />;
       case 'text':
@@ -1065,35 +825,13 @@ export default function App() {
         style={{ scaleX: scrollYProgress }}
       />
       
-      {isAdminOpen && (
-        <AdminPanel 
-          initialContent={content} 
-          onSave={handleSaveContent} 
-          onChange={(newContent) => setContent(newContent)}
-          onReset={handleResetContent}
-          onClose={() => {
-            setIsAdminOpen(false);
-            window.location.hash = '/';
-            setIsAdminLoggedIn(localStorage.getItem('admin_session') === 'true');
-          }} 
-          defaultTab={adminTab}
-        />
-      )}
-
-      {/* Scroll to Top */}
-      <AnimatePresence>
-        {showScrollTop && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            onClick={scrollToTop}
-            className="fixed bottom-8 right-8 z-40 bg-primary text-white p-4 rounded-2xl shadow-2xl shadow-primary/20 hover:scale-110 active:scale-95 transition-all"
-          >
-            <ArrowUp className="w-6 h-6" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Admin Panel and Scroll to Top removed for static version */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-8 right-8 z-40 bg-primary text-white p-4 rounded-2xl shadow-2xl transition-all hover:scale-110 active:scale-95 ${window.scrollY > 500 ? 'opacity-100' : 'opacity-0 h-0 w-0 overflow-hidden'}`}
+      >
+        <ArrowUp className="w-6 h-6" />
+      </button>
 
       {/* Navigation */}
       <nav className={`fixed w-full z-[100] transition-all duration-500 backdrop-blur-xl border-b border-white/10 bg-slate-900/60`}>
@@ -1290,9 +1028,6 @@ export default function App() {
                <a href="#" className="hover:text-orange-500 transition-colors">Gizlilik</a>
                <a href="#" className="hover:text-orange-500 transition-colors">KVKK</a>
                <a href="#" className="hover:text-orange-500 transition-colors">İletişim</a>
-               <a href="#admin" className="opacity-10 hover:opacity-100 transition-opacity ml-4 border-l border-white/5 pl-4 flex items-center italic text-slate-600">
-                 <Lock className="w-2 h-2" />
-               </a>
             </div>
           </div>
         </motion.div>
