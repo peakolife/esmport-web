@@ -208,9 +208,9 @@ const INITIAL_CONTENT: SiteContent = {
           content: {
             sectionHeading: "Yükünüz Bizimle Daima Güvende.",
             sectionDescription: "Liman ve antrepo operasyonlarınızda ESM PORT güvencesiyle 7/24 hizmetinizdeyiz. Profesyonel ekibimize dilediğiniz an ulaşabilirsiniz.",
-            phone: "+90 ",
+            phone: "+90 532 523 53 55",
             email: "info@esmport.com",
-            address: "Lojistik Org. Bölgesi No:42, İstanbul"
+            address: "Adnan Menderes Mh. İnönü Blv. No: 36 A Akdeniz/MERSİN"
           }
         }
       ]
