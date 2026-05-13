@@ -901,7 +901,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ initialContent, onSave, 
                             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all text-sm"
                           >
                             <optgroup label="Sistem Sayfaları">
-                              {content.pages.map((p: any) => <option key={p.id} value={p.slug === '/' ? '/' : '#/' + p.slug.replace(/^\//, '')}>{p.title} ({p.slug})</option>)}
+                              {content.pages.map((p: any) => (
+                                <option key={p.id} value={p.slug === '/' ? '/' : '#/' + (p.slug || '').replace(/^\//, '')}>
+                                  {p.title} ({p.slug || '/'})
+                                </option>
+                              ))}
                             </optgroup>
                             <optgroup label="Bölüm Çapaları (Anchor)">
                               <option value="#hero">Giriş (Hero)</option>
